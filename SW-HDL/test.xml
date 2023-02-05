@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<microprocessor name="Microcontroller" description="No description set." width="2" length="2" id_counter="15" id_counter_node="3">
+	<nodes>
+		<n id="1" component_id="4">
+			<node label="output" type="6" description="The input signal to be processed.">
+				<position z="1"/>
+			</node>
+		</n>
+		<n id="2" component_id="8">
+			<node label="Input" mode="1" description="The input signal to be processed.">
+				<position x="1" z="1"/>
+			</node>
+		</n>
+		<n id="3" component_id="15">
+			<node label="0,0 anchor" type="5" description="The input signal to be processed."/>
+		</n>
+	</nodes>
+	<group>
+		<data type="-139198522">
+			<inputs/>
+			<outputs/>
+		</data>
+		<components>
+			<c type="56">
+				<object id="1" script="-- Lua 1">
+					<pos x="-0.25" y="-0.75"/>
+				</object>
+			</c>
+			<c type="13">
+				<object id="12">
+					<pos x="-1.75" y="-0.75"/>
+					<r text="0"/>
+				</object>
+			</c>
+		</components>
+		<components_bridge>
+			<c type="7">
+				<object id="4">
+					<pos x="1.25" y="-0.75"/>
+					<in1 component_id="1" node_index="1"/>
+				</object>
+			</c>
+			<c>
+				<object id="8">
+					<pos x="-0.25" y="0.25"/>
+				</object>
+			</c>
+			<c type="5">
+				<object id="15"/>
+			</c>
+		</components_bridge>
+		<groups/>
+		<component_states>
+			<c0 id="1" script="-- Lua 1">
+				<pos x="-0.25" y="-0.75"/>
+			</c0>
+			<c1 id="12">
+				<pos x="-1.75" y="-0.75"/>
+				<r text="0"/>
+			</c1>
+		</component_states>
+		<component_bridge_states>
+			<c0 id="4">
+				<pos x="1.25" y="-0.75"/>
+				<in1 component_id="1" node_index="1"/>
+			</c0>
+			<c1 id="8">
+				<pos x="-0.25" y="0.25"/>
+			</c1>
+			<c2 id="15"/>
+		</component_bridge_states>
+		<group_states/>
+	</group>
+</microprocessor>
+

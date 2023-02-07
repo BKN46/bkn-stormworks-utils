@@ -153,12 +153,14 @@ class Microcontroller:
         self.components: List[Component] = []
         self.bridges: List[Component] = []
 
-    def get_id(self):
+    def get_id(self) -> int:
         return len(self.components) + len(self.bridges) + 1
 
-    def add_comp(self, module: str):
-        new_comp = Component(module, self.get_id())
+    def add_comp(self, module: str) -> int:
+        comp_id = self.get_id()
+        new_comp = Component(module, comp_id)
         self.components.append(new_comp)
+        return comp_id
 
     def add_node(
         self,
@@ -166,11 +168,13 @@ class Microcontroller:
         node_mode: int = 0,
         label: str = "label",
         desc: str = "",
-    ):
-        new_node = Node(len(self.nodes) + 1, node_type, self.get_id(), mode=node_mode, label=label, desc=desc)
-        new_bridge = Component("", self.get_id())
+    ) -> int:
+        node_id = self.get_id()
+        new_node = Node(len(self.nodes) + 1, node_type, node_id, mode=node_mode, label=label, desc=desc)
+        new_bridge = Component("", node_id)
         self.nodes.append(new_node)
         self.bridges.append(new_bridge)
+        return node_id
 
     def get_xml(self):
         width = math.ceil(math.sqrt(len(self.nodes)))

@@ -28,7 +28,7 @@ record = None
 # data split by comma
 @app.route("/send")
 def get_info():
-    value = request.args.get("value")
+    value = request.args.get("value").replace('|||', '\n') # type: ignore
     if record:
         values = [float(x) for x in str(value).split(",")]
         record.update(values)

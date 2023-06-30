@@ -1,7 +1,7 @@
 import math
 from typing import List, Tuple
 
-from modules import COMPONENT_LIB
+from modules import COMPONENT_LIB, Port
 
 
 MC_BASE = """
@@ -156,11 +156,11 @@ class Microcontroller:
     def get_id(self) -> int:
         return len(self.components) + len(self.bridges) + 1
 
-    def add_comp(self, module: str) -> int:
+    def add_comp(self, module: str) -> Component:
         comp_id = self.get_id()
         new_comp = Component(module, comp_id)
         self.components.append(new_comp)
-        return comp_id
+        return new_comp
 
     def add_node(
         self,

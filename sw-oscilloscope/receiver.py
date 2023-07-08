@@ -3,7 +3,6 @@ import threading
 from flask import Flask, request
 from werkzeug.serving import make_server
 
-from render import Oscilloscope
 
 class ServerThread(threading.Thread):
     def __init__(self, app, port):
@@ -25,13 +24,17 @@ app = Flask(__name__)
 processes = []
 record = None
 
+global_values = []
+
 # data split by comma
 @app.route("/send")
 def get_info():
+    global global_values
     value = request.args.get("value").replace('|||', '\n') # type: ignore
     if record:
-        values = [float(x) for x in str(value).split(",")]
-        record.update(values)
+        global_values.extend(value.split("\n"))
+        global_values = global_values[-600:]
+        print("\n".join(global_values),file=open("data.csv", "w"))
     else:
         print(f"{value}",file=open("data.csv", "a"))
     return "done"
@@ -46,8 +49,3 @@ def run_server(port):
     server.start()
     processes.append(server)
 
-
-if __name__ == "__main__":
-    record = Oscilloscope()
-    server = ServerThread(app, 5588)
-    server.start()

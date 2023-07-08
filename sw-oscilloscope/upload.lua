@@ -9,28 +9,28 @@ function onTick()
 	num_table=split(PT("Which number ouput to monitor(split by ,)"),",")
 	bool_table=split(PT("Which bool ouput to monitor(split by ,)"),",")
 	value=""
-	for i=1,32,1 do
-		if num_table[i]~=nil then
-			if i==1 then
-				value=string.format("%.6f", GN(i))
-			else
-				value=value..string.format(",%.6f", GN(i))
-			end
+	for key, tmpa in pairs(num_table) do
+		if i==1 then
+			value=string.format("%.6f", GN(tmpa))
+		else
+			value=value..string.format(",%.6f", GN(tmpa))
 		end
 	end
-	for i=1,32,1 do
-		if bool_table[i]~=nil then
-			if GB(i) then
-				tmp=1
-			else
-				tmp=0
-			end
+	for key, tmpa in pairs(bool_table) do
+		if GB(tmpa) then
+			tmp=1
+		else
+			tmp=0
+		end
+		if value=="" then
+			value=value..string.format("%d", tmp)
+		else
 			value=value..string.format(",%d", tmp)
 		end
 	end
 	table.insert(UPLOAD_TABLE, value)
 
-	if INTV==0 then
+	if INTV==1 then
 		upload_value=table.concat(UPLOAD_TABLE, "|||")
 		async.httpGet(5588, string.format("/send?value=%s", upload_value))
 		UPLOAD_TABLE={}

@@ -1,0 +1,956 @@
+Default Game Commands   
+	The following commands can be called at any time and are built into the game:
+	 
+	Autosaves the game and live-reloads all active scripts and mission locations to allow for live debugging and editing of missions    
+		?reload_scripts 
+	
+	Kicks the associated player from the game.  
+		?kick <peer_id> 
+	
+	Bans the associated player from the game. 
+		?ban <peer_id>  
+	
+	Give a player admin status. Authorize a player to use commands and bypass custom menu lock. 
+		?add_admin <peer_id>    
+	
+	Remove admin status from a player.  
+		?remove_admin <peer_id>
+	
+	Give a player auth status. Authorize a player to use workbenches. 
+		?add_auth <peer_id>
+	
+	Remove auth status from a player.   
+		?remove_auth <peer_id>
+	
+	Dedicated server only, lets you force the dedicated server to save. save_name parameter is optional and default uses 
+	save_name from server congfig (If config setting is left blank it will save to autosave_server.)   
+		?save <save_name> 
+ 
+ 
+Lua scripting overview      
+	Lua scripting gives you the tools to create advanced missions and custom gamemodes. 
+	Stormworks provides a number of functions that allow your script to interface with the game.
+	This guide outlines the functions that are available but is not a comprehensive tutorial on using the Lua language
+
+
+API General Info
+
+	peer_id can be found on the left side of the player list, singleplayer games always use peer_id 
+
+	The coordinate system uses Y as the vertical axis for matrices and vectors in world space
+
+	The functionalities of arguments in CAPS are detailed at the bottom of the documentation
+
+	peer_id can be passed as -1 to send for all connected peers     
+
+	Any variables saved to a lua table named g_savedata will be saved out and loaded from a per-save lua_data.xml, you can use this to make your scripts persistent 
+
+	For code that you want to run once at the start of the save use onCreate(is_world_create) and check is_world_create is true
+
+	Using server.announce() in onCreate will usually cause the messages to be sent before your client is connected and they will not be received
+
+	Remember to avoid the table length operator #and iPairs unless dealing with contiguous tables that start at index 1 (If a table is unexpectedly showing as length 0 this 
+	probably means it is not contiguous, the following function can be used for non - standard tables)     
+	
+		function tableLength(T)
+			local count = 0
+			for _ in pairs(T) do count = count + 1 end
+			return count
+		end
+       
+	This scripting API is very powerful and as such there are some important reminders to take note of:
+
+	- Your script has a max execution time of 1000 milliseconds, however it is still possible to create scripts that significantly slow down the game. 
+		It is your responsibility to ensure your script runs efficiently.
+	- peer_id can be passed as -1 to send for all connected peers
+	- Any variables saved to a lua table named g_savedata will be saved out and loaded from a per-save lua_data.xml, you can use this to make your scripts persistent
+	- A number of safeguards are in place to sandbox your script, however it is still possible to write scripts that will potentially crash your game. 
+		If you crash your game with a script, it's likely that you're doing something (very) wrong. This is your own responsibility. If you suspect you have encountered a legitimate bug, please report it on the Stormworks issue tracker (accessible from the pause-menu).
+	- Malicious and harmful scripts will not be tolerated on the Stormworks Steam Workshop.
+
+	Finally, enjoy the almost limitless possibilities that these scripts provide. This short wiki aims to give a good overview of how scripting in Stormworks works, however if you have any questions that are not covered here, please feel free to join us on Discord (accessible from the pause-menu)!  Matrix Manipulation     Stormworks provides a limited set of matrix functions that are useful for transforming positions of objects in scripts:
+    
+	Multiply two matrices together. 
+	out_matrix = matrix.multiply(matrix1, matrix2)  
+	
+	Invert a matrix.  
+	out_matrix = matrix.invert(matrix1) 
+	
+	Transpose a matrix. 
+	out_matrix = matrix.transpose(matrix1)  
+	
+	Return an identity matrix.  
+	out_matrix = matrix.identity()  
+	
+	Return a rotation matrix rotated in the X axis. 
+	out_matrix = matrix.rotationX(radians)  
+	
+	Return a rotation matrix rotated in the Y axis. 
+	out_matrix = matrix.rotationY(radians)  
+	
+	Return a rotation matrix rotated in the Z axis. 
+	out_matrix = matrix.rotationZ(radians)
+	
+	Return a translation matrix translated by x,y,z.
+	out_matrix = matrix.translation(x,y,z)  
+	
+	Get the x,y,z position from a matrix.   
+	x,y,z = matrix.position(matrix1)    
+	
+	Find the distance between two matrices
+	dist = matrix.distance(matrix1, matrix2)
+	
+	Multiplies a matrix by a vec 4.
+	out_x, out_y, out_z, out_w = matrix.multiplyXYZW(matrix1, x, y, z, w)   
+	
+	Returns the rotation required to face an X Z vector 
+	out_rotation = matrix.rotationToFaceXZ(x, z)
+    
+	Most API functions take a matrix as a parameter so users that do not wish to use matrices directly can convert between matrices and coordinates as follows:     
+	-- Teleport peer_1 10m up
+	peer_1_pos, is_success = server.getPlayerPos(1)
+	if is_success then
+		local x, y, z = matrix.position(peer_1_pos)
+		y = y + 10
+		server.setPlayerPos(1, matrix.translation(x,y,z))
+	end
+  
+Callback Functions      
+  
+  Listed below are callback functions that can be added to a script and are automatically called when their specific conditions are met, the simplest callback function is onTick which is automatically called every game tick.  
+  
+  Called every game tick. game_ticks refers to the number of ticks that have passed this frame (normally 1, while sleeping 400).  
+  function onTick(game_ticks)    
+  
+  onCreate is called when the script is initialized (whenever creating or loading a world. is_world_create is true only on world generate (first load).
+  function onCreate(is_world_create)  
+  
+  onDestroy is called whenever the world is exited.   
+  function onDestroy()        
+  
+  onCustomCommand is called when a command is typed into chat. full_message contains the entire message including spaces, command contains the first parameter including the ? e.g. ?teleport, args ... represents the variadic arguments of the command (can also be explicitly declared, see example below)     
+  function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command, args ...) 
+  
+  onChatMessage is called when a chat message is posted.  
+  function onChatMessage(peer_id, sender_name, message)   
+  
+  onPlayerJoin is called when a player joins the game.
+  function onPlayerJoin(steam_id, name, peer_id, is_admin, is_auth)   
+  
+  onPlayerSit is called when a player sits in a seat. 
+  function onPlayerSit(peer_id, vehicle_id, seat_name)    
+  
+  onCharacterSit is called when any character (including players) sits in a seat. 
+  function onCharacterSit(object_id, vehicle_id, seat_name)   
+  
+  onPlayerRespawn is called when a player respawns.
+  function onPlayerRespawn(peer_id)   
+  
+  onPlayerLeave is called when a player leaves the game.      
+  function onPlayerLeave(steam_id, name, peer_id, is_admin, is_auth)      
+  
+  onToggleMap is called when a player opens/closes the map. is_open represents whether their map is open. 
+  function onToggleMap(peer_id, is_open)  
+  
+  onPlayerDie is called when a player dies.       
+  function onPlayerDie(steam_id, name, peer_id, is_admin, is_auth)
+  
+  onVehicleSpawn is called when a vehicle is spawned. If vehicle is spawned by a script peer_id will be -1. Spawned vehicles must still load locally so they can begin simulating for players. x, y, z are the spawn coordinates in world space. Cost is currently only calculated for player spawned vehicles.  
+  function onVehicleSpawn(vehicle_id, peer_id, x, y, z, cost) 
+  
+  onVehicleLoad is called when a vehicle has loaded and is ready to simulate.
+  function onVehicleLoad(vehicle_id)
+
+  onVehicleUnload is called when a vehicle has unloaded and is no longer simulating.  
+  function onVehicleUnload(vehicle_id)        
+  
+  onVehicleTeleport is called when a vehicle is teleported or returned to workbench. If vehicle is teleported by a script peer_id will be -1. x,y,z are the destination coordinates in world space.   
+  function onVehicleTeleport(vehicle_id, peer_id, x, y, z)    
+  
+  onButtonPress is called when a button state is updated. 
+  function onButtonPress(vehicle_id, peer_id, button_name)    
+  
+  if vehicle is despawned by a script peer_id will be -1. 
+  function onVehicleDespawn(vehicle_id, peer_id)
+  
+  onSpawnAddonComponent is called when a vehicle or object is spawned by a script. addon_index is the internal index of the addon the object was spawned from (see mission functions below)       
+  function onSpawnAddonComponent(object_id/vehicle_id, component_name, TYPE_STRING, addon_index)
+  
+	TYPE_STRING |
+	"zone",
+	"object",
+	"character",
+	"vehicle",
+	"flare",
+	"fire",
+	"loot",
+	"button",
+	"ice"   
+	
+  onVehicleDamaged is called when a vehicle is damaged or repaired. Damage amount will be negative if the component is repaired. The voxel parameters refer to the voxel position on the vehicle that sustained the damage relative to the origin of hte vehicle. 
+  function onVehicleDamaged(vehicle_id, damage_amount, voxel_x, voxel_y, voxel_z)
+  
+  httpReply is called when a HTTP request has returned. The callback details the request and the received reply.  
+  function httpReply(port, request, reply))       
+  
+  onFireExtinguished is called when a fire is extinguished. The returned coordinates represent the fire's world coordinates.
+  function onFireExtinguished(fire_x, fire_y, fire_z) 
+  
+  onForestFireSpawned is called when 5 or more trees are detected to be on fire within a small radius. The returned coordinates represent the fire's world coordinates. The objective ID is used to track separate forest fire events.    
+  function onForestFireSpawned(fire_objective_id, fire_x, fire_y, fire_z) 
+  
+  onForestFireExtinguished is called when all trees within a forest fire objective have been extinguished. The returned coordinates represent the fire's world coordinates. The objective ID is used to track separate forest fire events.        
+  function onForestFireExtinguished(fire_objective_id, fire_x, fire_y, fire_z)
+  
+  
+  
+Server Functions    
+	UI
+		Sends a chat message. peer_id is optional and defaults to -1 for all peers
+		server.announce(name, message, (peer_id))   
+		
+		Sends a pop up notification to the specified peer(s)    
+		server.notify(peer_id, title, message, NOTIFICATION_TYPE)    
+		
+			NOTIFICATION_TYPE |
+			0 = new_mission,
+			1 = new_mission_critical,
+			2 = failed_mission,
+			3 = failed_mission_critical,
+			4 = complete_mission,
+			5 = network_connect,
+			6 = network_disconnect,
+			7 = network_info,
+			8 = chat_message,
+			9 = network_info_critical
+		
+		Returns a unique UI id number for use with all other UI functions, The UI ID can be used to track, edit and clean UI elements up.
+		ui_id = server.getMapID()
+    
+		Removes all UI with the specified UI ID for the specified peer(s)   
+		server.removeMapID(peer_id, ui_id)
+
+		Add a map marker for the specified peer(s). x, z represent the worldspace location of the marker, since the map is 2D a y coordinate is not required. If POSITION_TYPE is set to 1 or 2 (vehicle or object) then the marker will track the object/vehicle of object_id/vehicle_id and offset the position by parent_local_x, parent_local_z.    
+		server.addMapObject(peer_id, ui_id, POSITION_TYPE, MARKER_TYPE, x, z, parent_local_x, parent_local_z, vehicle_id, object_id, label, radius, hover_label)
+		
+			POSITION_TYPE |
+			0 = fixed,
+			1 = vehicle,
+			2 = object
+
+			MARKER_TYPE |
+			0 = delivery_target,
+			1 = survivor,
+			2 = object,
+			3 = waypoint,
+			4 = tutorial,
+			5 = fire,
+			6 = shark,
+			7 = ice,
+			8 = search_radius
+		Removes a map object with the specified UI ID for the specified peer(s) 
+		server.removeMapObject(peer_id, ui_id)
+		
+		Add a map label for the specified peer(s). x, z represent the worldspace location of the marker. Map labels appear under fog of war.    
+		server.addMapLabel(peer_id, ui_id, LABEL_TYPE, name, x, z)
+		
+			LABEL_TYPE |
+			0 = none,
+			1 = cross,
+			2 = wreckage,
+			3 = terminal,
+			4 = military,
+			5 = heritage,
+			6 = rig,
+			7 = industrial,
+			8 = hospital,
+			9 = science,
+			10 = airport,
+			11 = coastguard,
+			12 = lighthouse,
+			13 = fuel,
+			14 = fuel_sell       
+	
+		Removes a map label with the specified UI ID for the specified peer(s)
+		server.removeMapLabel(peer_id, ui_id)   
+		
+		Adds a map line between two world space matrices with the specified UI ID for the specified peer(s)     
+		server.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width)
+
+		Removes a map line with the specified UI ID for the specified peer(s)   
+		server.removeMapLine(peer_id, ui_id)    
+		
+		Creates a popup to the world/screen with the specified UI ID for the specified peer(s). If render distance is set to 0 then the popup will always render. Optionally Parent to a vehicle or Object, with x,y,z acting as a relative position.   
+		server.setPopup(peer_id, ui_id, name, is_show, text, x, y, z, render_distance, [vehicle_parent_id], [object_parent_id]) 
+		
+		Creates a popup to the screen with the specified UI ID for the specified peer(s). Screen space offset ranges from -1,-1 (Bot Left) to 1,1 (Top Right).
+		server.setPopupScreen(peer_id, ui_id, name, is_show, text, horizontal_offset, vertical_offset)  
+		
+		Removes a popup with the specified UI ID for the specified peer(s)  
+		server.removePopup(peer_id, ui_id)  
+		
+	Player  
+		Returns the player name of the specified peer as it appears to the server.  
+		name, is_success = server.getPlayerName(peer_id)    
+		
+		Returns a table containing info on all connected players.   P
+		LAYER_LIST = server.getPlayers()   
+	
+			PLAYER_LIST |
+				{ [peer_index] = { ["id"] = peer_id, ["name"] = name, ["admin"] = is_admin, ["auth"] = is_auth, ["steam_id"] = steam_id }}
+
+		Gets the world position of a specified peer as a matrix.    
+		transform_matrix, is_success = server.getPlayerPos(peer_id) 
+		
+		Teleports the specified player to the target world position.    
+		is_success = server.setPlayerPos(peer_id, transform_matrix)
+
+		Returns the forward vector of the specified player's camera 
+		x, y, z, is_success = server.getPlayerLookDirection(peer_id)    
+	
+	Objects
+		Get a specified player's character object id.   
+		object_id, is_success = server.getPlayerCharacterID(peer_id)
+		
+		Spawn the specified object at the specified world position.
+		object_id, is_success = server.spawnObject(transform_matrix, OBJECT_TYPE)       
+			OBJECT_TYPE |
+			0 = none,
+			1 = character,
+			2 = crate_small,
+			3 = collectable,
+			4 = basketball,
+			5 = television,
+			6 = barrel,
+			7 = schematic,
+			8 = debris,
+			9 = chair,
+			10 = trolley_food,
+			11 = trolley_med,
+			12 = clothing,
+			13 = office_chair,
+			14 = book,
+			15 = bottle,
+			16 = fryingpan,
+			17 = mug,
+			18 = saucepan,
+			19 = stool,
+			20 = telescope,
+			21 = log,
+			22 = bin,
+			23 = book_2,
+			24 = loot,
+			25 = blue_barrel,
+			26 = buoyancy_ring,
+			27 = container,
+			28 = gas_canister,
+			29 = pallet,
+			30 = storage_bin,
+			31 = fire_extinguisher,
+			32 = trolley_tool,
+			33 = cafetiere,
+			34 = drawers_tools,
+			35 = glass,
+			36 = microwave,
+			37 = plate,
+			38 = box_closed,
+			39 = box_open,
+			40 = desk_lamp,
+			41 = eraser_board,
+			42 = folder,
+			43 = funnel,
+			44 = lamp,
+			45 = microscope,
+			46 = notebook,
+			47 = pen_marker,
+			48 = pencil,
+			49 = scales,
+			50 = science_beaker,
+			51 = science_cylinder,
+			52 = science_flask,
+			53 = tub_1,
+			54 = tub_2,
+			55 = filestack,
+			56 = barrel_toxic,
+			57 = flare,
+			58 = fire,
+			59 = animal,
+			60 = map_label,
+			61 = iceberg,
+			62 = small_flare,
+			63 = big_flare    
+	
+		Spawn a world fire at the specified world position matrix. parent_vehicle_id should be 0 if the fire should not move relative to a vehicle.     
+		object_id, is_success = server.spawnFire(transform_matrix, size, magnitude, is_lit, is_explosive, parent_vehicle_id, explosion_magnitude)       
+		
+		Spawn a character object with an optional outfit at the specified world postion.        
+		object_id, is_success = server.spawnCharacter(transform_matrix, (OUTFIT_TYPE))  
+			OUTFIT_TYPE |
+			0 = none,
+			1 = worker,
+			2 = fishing,
+			3 = waiter,
+			4 = swimsuit,
+			5 = military,
+			6 = office,
+			7 = police,
+			8 = science,
+			9 = medical,
+			10 = wetsuit,
+			11 = civilian    
+	
+		Spawn an animal at the specified world postion. 
+		object_id, is_success = server.spawnAnimal(transform_matrix, ANIMAL_TYPE, size_multiplier)      
+			ANIMAL_TYPE |
+			0 = shark,
+			1 = whale,
+			2 = seal,
+			3 = penguin 
+	
+		Despawn the specified object when it is out of a player's range. is_instant will instantly despawn the object.  
+		is_success = server.despawnObject(object_id, is_instant)        
+		
+		Get the world position of a specified object. is_success returns false if the object cannot be found.   
+		transform_matrix, is_success = server.getObjectPos(object_id)   
+		
+		Get the simulating state of a specified object. is_success returns false if the object cannot be found. 
+		is_simulating, is_success = server.getObjectSimulating(object_id)       
+		
+		Set the world position of a specified object. is_success returns false if the object cannot be found.   
+		is_success = server.setObjectPos(object_id, transform_matrix)   
+		
+		Set data for an existing world fire using its object_id.
+		server.setFireData(object_id, is_lit, is_explosive) 
+		
+		Get data for a world fire using its object_id.  
+		is_lit = server.getFireData(object_id)  
+		
+		Kills the target character. 
+		server.killCharacter(object_id) 
+		
+		Revives the target character.   
+		server.reviveCharacter(object_id)   
+		
+		Sets the target character to be seated in the first seat with the specified name found on the specified vehicle.    
+		server.setCharacterSeated(object_id, vehicle_id, seat_name)
+
+		Get character data for a specified character object.
+		hp, is_incapacitated, is_dead, is_interactable, is_ai = server.getCharacterData(object_id)  
+		
+		Get the current vehicle_id for a specified character object.
+		vehicle_id, is_success = server.getCharacterVehicle(object_id)
+		
+		Set character data for a specified character object. Non-interactable characters are frozen in place and cannot be moved. is_interactable has no effect on Player characters.   
+		server.setCharacterData(object_id, hp, is_interactable, is_ai)  
+		
+		Set the item slot data for a specified character object.        
+		is_success = server.setCharacterItem(object_id, SLOT_NUMBER, EQUIPMENT_ID, is_active)   
+			SLOT_NUMBER |
+			1 = Large Equipment Slot, 
+			2, 3, 4, 5 = Small Equipment Slot, 
+			6 = Outfit Slot       
+			EQUIPMENT_ID |
+			Outfits
+				0 = none,
+				1 = diving,
+				2 = firefighter,
+				3 = scuba,
+				4 = parachute,
+				5 = arctic,
+				29 = hazmat
+			Items
+				6 = binoculars,
+				7 = cable,
+				8 = compass,
+				9 = defibrillator,
+				10 = fire_extinguisher,
+				11 = first_aid,
+				12 = flare,
+				13 = flaregun,
+				14 = flaregun_ammo,
+				15 = flashlight,
+				16 = hose,
+				17 = night_vision_binoculars,
+				18 = oxygen_mask,
+				19 = radio,
+				20 = radio_signal_locator,
+				21 = remote_control,
+				22 = rope,
+				23 = strobe_light,
+				24 = strobe_light_infrared,
+				25 = transponder,
+				26 = underwater_welding_torch,
+				27 = welding_torch,
+				28 = coal,
+				30 = radiation_detector,
+		Get the item int he specified slot for a specified character object.    
+		EQUIPMENT_ID, is_success = server.getCharacterItem(object_id, SLOT_NUMBER)      
+		
+	Vehicle
+	
+		Spawns a vehicle component from a specific addon. See getLocationComponentData() for info on how to get component_id.   
+		vehicle_id, is_success = server.spawnAddonVehicle(transform_matrix, addon_index, component_id)  
+		
+		Spawns a vehicle from local appdata using its file name.        
+		vehicle_id, is_success = server.spawnVehicle(transform_matrix, save_name)       
+		
+		Sets a vehicle to depsawn when out of a player's range. If is_instant the vehicle will instantly despawn no matter the player's proximity.
+		is_success = server.despawnVehicle(vehicle_id, is_instant)
+
+		Gets the world position of a vehicle. Voxel positions can be passed to get the world position of that voxel (defaults to 0,0,0 for vehicle origin).   
+		transform_matrix, is_success = server.getVehiclePos(vehicle_id, voxel_x = 0, voxel_y = 0, voxel_z = 0)  
+		
+		Teleports the specified vehicle to the target world position.   
+		is_success = server.setVehiclePos(vehicle_id, transform_matrix) 
+		
+		Gets a vehicle's file name. 
+		name, is_success = server.getVehicleName(vehicle_id)        
+		
+		Gets general data for a vehicle. Including a list of attached character objects and any tags assigned from an addon.
+		VEHICLE_DATA, is_success = server.getVehicleData(vehicle_id)
+			VEHICLE_DATA = {
+				["tags_full"] = tags, 
+				["tags"] = { [i] = tag },
+				["filename"] = vehicle_file_name,
+				["transform"] = transform_matrix, 
+				["simulating"] = is_simulating,
+				["mass"] = mass, 
+				["characters"] = { char_id, char_id... } 
+			}
+	
+		Cleans up all player spawned vehicles.  
+		server.cleanVehicles()  
+		
+		Override the inputs to the first seat of the specified name found on the specified vehicle. A seated player will prevent overrides.     server.setVehicleSeat(vehicle_id, seat_name, axis_w, axis_d, axis_up, axis_right, button1, button2, button3, button4, button5, button6) 
+		
+		Applies a press action to the first button of the specified name found on the specified vehicle.    
+		server.pressVehicleButton(vehicle_id, button_name
+		
+		Returns the state of the first button of the specified name found on the specified vehicle.     
+		is_on, is_success = server.getVehicleButton(vehicle_id, button_name)    
+		
+		Applies a set number action to the first keypad of the specified name found on the specified vehicle.   
+		server.setVehicleKeypad(vehicle_id, keypad_name, value) 
+		
+		Returns the value of the first dial of the specified name found on the specified vehicle.       
+		value, is_success = server.getVehicleDial(vehicle_id, dial_name)        
+		
+		Applies a set fluid action to the first tank of the specified name found on the specified vehicle.      
+		server.setVehicleTank(vehicle_id, tank_name, amount, FLUID_TYPE)
+			FLUID_TYPE |
+			0 = water,
+			1 = diesel,
+			2 = jet_fuel,
+			3 = air,
+			4 = exhaust,
+			5 = oil,
+			6 = saltwater,
+		
+		Returns the value of the first tank of the specified name found on the specified vehicle.       
+		tank_level, tank_capacity, is_success = server.getVehicleTank(vehicle_id, tank_name)    
+		
+		Sets the number of coal objects inside a hopper of the specified name found on the specified vehicle.   
+		server.setVehicleHopper(vehicle_id, hopper_name, amount)
+		
+		Returns the coal count of the first hopper of the specified name found on the specified vehicle.        
+		coal_level, hopper_capacity, is_success = server.getVehicleHopper(vehicle_id, hopper_name)
+		
+		Applies a set charge action to the first battery of the specified name found on the specified vehicle. 0 to 1 range.
+		server.setVehicleBattery(vehicle_id, battery_name, amount)  
+		
+		Returns the value of the first battery of the specified name found on the specified vehicle.    
+		value, is_success = server.getVehicleBattery(vehicle_id, battery_name)  
+		
+		Gets the target destination for an AI.  
+		target_x, target_y, target_z = server.getAITarget(object_id)    
+		
+		Get the number of burning surfaces on a specified vehicle.      
+		surface_count, is_success = server.getVehicleFireCount(vehicle_id)      
+		
+		Set the default block tooltip of a vehicle to display some text. Blocks with unique tooltips (e.g. buttons) will override this tooltip. is_success = 
+		server.setVehicleTooltip(vehicle_id, text) 
+		
+		Applies impact damage to a vehicle at the specified voxel location. Damage range is 0-100.
+		is_success = server.addDamage(vehicle_id, amount, voxel_x, voxel_y, voxel_z)    
+		
+		Returns whether the specified vehicle has finished loading and is simulating.   
+		is_simulating, is_success = server.getVehicleSimulating(vehicle_id)     
+		
+		Sets a vehicle's global transponder to active. (All vehicles have a global transponder that can be active even if a vehicle is not loaded).
+		is_success = server.setVehicleTransponder(vehicle_id, is_active)        
+		
+		Sets a vehicle to be editable by players. If a vehicle is spawned by a script it will not have a parent workbench until edited by one (Edit vehicle in zone).   
+		is_success = server.setVehicleEditable(vehicle_id, is_editable) 
+		
+		Sets a vehicle to show on the map.      
+		is_success = server.setVehicleShowOnMap(vehicle_id, is_show_on_map)     
+		
+	AI
+		Lua AI can be run on any character, and their resulting actions are dictated by their state and the AI Type of the seat they are attached to.   
+		
+		Seat outputs:	
+			SEAT TYPE = Ship Pilot
+				Hotkey 1 = Engine On
+				Hotkey 2 = Engine Off
+				Axis W = Throttle
+				Axis D = Steering
+
+			SEAT TYPE = Helicopter Pilot
+				Hotkey 1 = Engine On 
+				Hotkey 2 = Engine Off
+				Axis W = Pitch
+				Axis D = Roll
+				Axis Up = Collective
+				Axis Right = Yaw
+
+			SEAT TYPE = Plane Pilot
+				Hotkey 1 = Engine On 
+				Hotkey 2 = Engine Off
+				Axis W = Pitch
+				Axis D = Roll
+				Axis Up = Throttle
+				Axis Right = Yaw
+
+		Sets the AI state for a character object.       
+		server.setAIState(object_id, AI_STATE)
+
+		SEAT TYPE = Ship Pilot
+			AI_STATE |
+			0 = none,
+			1 = path to destination,
+
+		SEAT TYPE = Helicopter Pilot
+			AI_STATE |
+			0 = none,
+			1 = path to destination,
+			2 = path to destination accurate (smaller incriments for landing/takeoff),
+
+		SEAT TYPE = Plane Pilot
+			AI_STATE |
+			0 = none,
+			1 = path to destination,
+		
+		Sets the target destination for an AI.  
+		server.setAITarget(object_id, matrix_destination)
+		
+	Addon
+	
+		Get the internal index of this addon    
+		addon_index, is_success = server.getAddonIndex()        
+		
+		Get the internal index of an active addon by its name (useful if you want to spawn components from another active addon)    
+		addon_index, is_success = server.getAddonIndex(name)        
+		
+		Get the internal index of a location in the specified addon by its name (this index is local to the addon)      
+		location_index, is_success = server.getLocationIndex(addon_index, name) 
+		
+		Directly spawn a location by name from the current addon    
+		is_success = server.spawnThisAddonLocation(name)    
+		
+		Spawn the specified mission location from the specified mission addon at  the specified world coordinates. A transform_matrix with x,y,z = 0,0,0 will spawn the location at a random location of the tile's type (useful for spawning missions on specific tiles)       
+		out_transform_matrix, is_success = server.spawnAddonLocation(transform_matrix, addon_index, location_index)     
+		
+		Get the filepath of an addon, is_rom will only be true for DEV addons stored in the rom folder  
+		path, is_success = server.getAddonPath(addon_name, is_rom)  
+		
+		Get a table of all active ENV MOD zones.    
+		ZONE_LIST = server.getZones()   
+		
+			ZONE_LIST = { 
+				[zone_index] = { 
+					["tags_full"] = tags, 
+					["tags"] = { [i] = tag },
+					["name"] = name, 
+					["transform"] = transform_matrix, 
+					["size"] = {x, y, z}, 
+					["radius"] = radius, 
+					["type"] = ZONE_TYPE 
+				}
+			}
+
+			ZONE_TYPE |
+			0 = box,
+			1 = sphere,
+			2 = radius,
+			
+		Get a table of all active ENV MOD zones that match the specified tag(s) 
+		ZONE_LIST = server.getZones(tag(s))     
+		
+		Returns whether the specified world transform is within an ENV MOD zone that matches the display name   
+		is_in_zone = server.isInZone(transform_matrix, zone_display_name)   
+		
+		Get number of active addons.    
+		count = server.getAddonCount()  
+		
+		Get table of addon data for the specified addon_index.
+		ADDON_DATA = server.getAddonData(addon_index)       
+			
+			ADDON_DATA = {
+				["name"] = name, 
+				["path_id"] = folder_path, 
+				["file_store"] = is_app_data, 
+				["location_count"] = location_count 
+			}
+		Get table of location data for the specified location at the specified addon_index.     
+		LOCATION_DATA, is_success = server.getLocationData(addon_index, location_index) 
+			
+			LOCATION_DATA = {
+				["name"] = name,
+				["tile"] = tile_filename, 
+				["env_spawn_count"] = spawn_count, 
+				["env_mod"] = is_env_mod, 
+				["component_count"] = component_count 
+			}
+		
+		Get table of component(object/vehicle) data for the specified component at the specified location at the specified addon_index. 
+		COMPONENT_DATA, is_success = server.getLocationComponentData(addon_index, location_index, component_index)      
+			
+			COMPONENT_DATA = {
+				["tags_full"] = tags,
+				["tags"] = { [i] = tag },
+				["display_name"] = display_name, 
+				["type"] = TYPE_STRING,
+				["id"] = component_id,
+				["dynamic_object_type"] = OBJECT_TYPE,
+				["transform"] = transform_matrix, 
+				["character_outfit_type"] = OUTFIT_TYPE 
+			}
+    
+		Spawn the component(object/vehicle) at the specified component index at the specified location at the specified addon_index.  
+		COMPONENT, is_success = server.spawnAddonComponent(transform_matrix, addon_index, location_index, component_index)      
+	
+			COMPONENT = {
+				["tags_full"] = tags, 
+				["tags"] = { [i] = tag }, 
+				["display_name"] = display_name, 
+				["type"] = TYPE_STRING, 
+				["transform"] = transform_matrix, 
+				["id"] = object_id/vehicle_id 
+			}
+		Returns the world position of a random ocean tile within the selected search range.     
+		transform_matrix, is_success = server.getOceanTransform(transform_matrix, min_search_range, max_search_range)   
+		
+		Returns the world position of a random tile of type tile_name closest to the supplied location. 
+		transform_matrix, is_success = server.getTileTransform(transform_matrix, tile_name)
+		
+		Returns the data for the tile at the specified location.    
+		TILE_DATA, is_success = server.getTile(transform)       
+			
+			TILE_DATA = {
+				["name"] = tile_name, 
+				["sea_floor"] = sea_floor_height, 
+				["cost"] = purchase_cost, 
+				["purchased"] = is_purchased, 
+			}
+		
+		Returns whether matrix_object is within zone_size of matrix_zone.       
+		is_in_area = server.isInTransformArea(matrix_object, matrix_zone, zone_size_x, zone_size_y, zone_size_z)        
+		
+		Returns a table of ocean tile waypoints that form a path from start to end.     
+		{ [i] = {x = world_x, z = world_z} } = server.pathfindOcean(matrix_start, matrix_end)   
+		
+	Game    
+		
+		Set a game setting. server.setGameSetting(GAME_SETTING, value)     
+		Returns a table of the game settings indexed by the GAME_SETTING string, this can be accessed inline eg. 
+		server.getGameSettings().third_person  {[GAME_SETTING] = value} = server.getGameSettings()  
+		
+			GAME_SETTING |
+			"third_person",
+			"third_person_vehicle",
+			"vehicle_damage",
+			"player_damage",
+			"npc_damage",
+			"sharks",
+			"fast_travel",
+			"teleport_vehicle",
+			"rogue_mode",
+			"auto_refuel",
+			"megalodon",
+			"map_show_players",
+			"map_show_vehicles",
+			"show_3d_waypoints",
+			"show_name_plates",
+			"day_night_length", -- currently cannot be written to
+			"sunrise", -- currently cannot be written to
+			"sunset", -- currently cannot be written to
+			"infinite_money",
+			"settings_menu",
+			"unlock_all_islands",
+			"infinite_batteries",
+			"infinite_fuel",
+			"engine_overheating",
+			"no_clip",
+			"map_teleport",
+			"cleanup_veicle",
+			"clear_fow", -- clear fog of war
+			"vehicle_spawning",
+			"photo_mode",
+			"respawning",
+			"settings_menu_lock",
+			"despawn_on_leave", -- despawn player characters when they leave a server
+			"unlock_all_components"
+	
+		Set game money and research points.
+		server.setCurrency(money, research_points)  
+		
+		Get game money. 
+		amount = server.getCurrency()   
+		
+		Get game research points.   
+		amount = server.getResearchPoints() 
+		
+		Get number of days since game start.    
+		days_survived = server.getDateValue()   
+		
+		Get the current game date.  
+		d, m, y = server.getDate()  
+		
+		Get system time in ms (Can be used for random seeding). 
+		system_time = server.getTimeMillisec()      
+		
+		Returns whether the tile at the given world coordinates is player owned.    
+		is_purchased = server.getTilePurchased(transform_matrix)    
+		
+	Http    
+	
+		Send a Http request.    
+			server.httpGet(port, request)   
+	
+	Admin
+		
+		Ban a player.   
+		server.banPlayer(peer_id)   
+		
+		Kick a player.  
+		server.kickPlayer(peer_id)  
+		
+		Give a player Admin.    
+		server.addAdmin(peer_id)    
+		
+		Remove Admin from a player. 
+		server.removeAdmin(peer_id) 
+		
+		Give a player Auth. 
+		server.addAuth(peer_id) 
+		
+		Remove Auth from a player.  
+		server.removeAuth(peer_id)      
+		
+		Send a save command for dedicated server, with optional save name parameter.    
+		server.save((save_name))    
+		
+	Misc        
+		
+		Get whether the game considers the tutorial active (Default missions check this before they spawn   
+		tutorial_completed = server.getTutorial()   
+		
+		Sets whether the game considers the tutorial active (useful if you are making your own tutorial)    
+		server.setTutorial()        
+		
+		Gets whether the player has acknowledged the video tutorials (useful if you are making your own tutorial) Returns true on a dedicated server.   video_tutorial_completed = server.getVideoTutorial()    
+		
+		Returns true if the host player is a developer of the game. 
+		is_dev = server.isDev()     
+		
+
+Examples
+
+	onCustomCommand is a flexible function that detects any chat messages starting with the command prefix ?, and breaks them up for processing. The example below shows how you can use it to set up your own commands with explicitly declared arguments.
+
+		function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command, arg1, arg2, arg3, arg4)
+			
+			--Only an admin can use this command
+			--Example use: ?tp 2000 80 2500
+			if command == "?tp" and is_admin == true then
+				server.setPlayerPos(user_peer_id, matrix.translation(arg1,arg2,arg3))
+			end
+
+			if command == "?hello" then
+				_, name = server.getPlayerName(user_peer_id)
+				server.announce("[Server]", "Hello " .. name)
+			end
+		end
+		
+	The script below shows one example of how you can spawn mission locations from the addon, track and despawn them.       
+	
+		spawned_mission_objects = {}
+
+		function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command, arg1, arg2, arg3, arg4)
+
+			--Example use: ?spawnLocation my_boat 50 15 1000
+			--Example use: ?spawnLocation my_mission 0 0 0
+			if command == "?spawnLocation" and is_admin == true then
+				local addon_index = server.getAddonIndexCurrent()
+				server.spawnAddonLocation(matrix.translation(arg2,arg3,arg4), addon_index, (server.getLocationIndex(addon_index, arg1)))	
+			end
+
+			if command == "?despawn" and is_admin == true then
+				for id, object in pairs(spawned_mission_objects) do	
+					if(object["type"] == "vehicle")
+					then
+						server.despawnVehicle(id, true)
+					else
+						server.despawnObject(id, true)
+					end
+				end
+			end
+
+		end
+
+		function onSpawnAddonComponent(id, name, type, addon_index)		 	
+			if (addon_index == server.getAddonIndex())
+			then
+				spawned_mission_objects[id] = {["name"] = name, ["type"] = type}
+			end
+		end
+	
+	The following function shows the easiest way to spawn a mission location from the script's parent addon.        
+		function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command, arg1, arg2, arg3, arg4)
+
+			if command == "?spawn_deltars_boat" then
+				server.announce("[My_Addon]", "Spawning location named DELTARS_BOAT_SPAWNER")
+				server.spawnThisAddonLocation("DELTARS_BOAT_SPAWNER")
+			end
+		end
+	
+	The following function shows one way of testing if any player is at a location. Please note the extra set of brackets around server.getPlayerPos to capture only the first return variable and ignore the is_success variable that server.getPlayerPos also returns.    
+		function anyPlayerAtPos(posX, posY, posZ)
+
+			local players = server.getPlayers()
+			for player_index, player_object in pairs(players) do
+				local x, y, z = matrix.position((server.getPlayerPos(player_object.id)))
+
+				local distSQ = ((posX - x) ^ 2) + ((posY - y) ^ 2) + ((posZ - z) ^ 2)
+				if(distSQ < 25)
+				then
+					return true
+				end
+			end
+
+			return false
+		end
+
+Default Addon Script
+
+	-- Tick function that will be executed every logic tick
+	function onTick(game_ticks)
+
+	end
+
+	function onPlayerJoin(steam_id, name, peer_id, admin, auth)
+		server.announce("[Server]", name .. " joined the game")
+	end
+
+	function onPlayerLeave(steam_id, name, peer_id, admin, auth)
+		server.announce("[Server]", name .. " left the game")
+	end
+
+	function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command, one, two, three, four, five)
+
+		if (command == "?hello")
+		then
+		server.announce("[Server]", "world")
+		end
+
+	end

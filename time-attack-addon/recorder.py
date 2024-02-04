@@ -26,7 +26,7 @@ def get_start():
     NOW_SESSION = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
     DATA = []
     START_TIME = time.time()
-    print(f"Start recording: {NOW_SESSION}")
+    print(f"开始计时, 玩家: {PLAYER}, steam_id: {STEAM_ID}, 车辆费用: {COST}")
     return "start:done"
 
 @app.route("/send")
@@ -36,14 +36,20 @@ def get_info():
     '''
     value = request.args.get("value").replace('|||', '\n') # type: ignore
     DATA.extend([x.split(",") for x in value.split("\n")])
+    for line in value.split("\n"):
+        if "Point " in line:
+            index = line.split("Point ")[1]
+            print(f"到达检查点-{index}")
     return "send:done"
 
 
 @app.route("/ping")
 def get_ping():
+    print("收到ping")
     try:
         res = post(f"http://{SERVER_HOST}/ping")
         if res.json():
+            print(f"收到返回: {res.text}")
             return "ping:yeah"
     except Exception as e:
         pass
@@ -56,6 +62,7 @@ def get_end():
         time: 用时
     '''
     global NOW_SESSION, END_TIME
+    print("完成比赛！")
     END_TIME = time.time()
     use_time = request.args.get("time") or 0 # type: ignore
     auto_save_path = os.path.join(find_sw_path(), "auto_save.xml")

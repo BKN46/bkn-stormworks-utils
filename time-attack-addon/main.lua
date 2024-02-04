@@ -210,6 +210,7 @@ function createUI(peer_id)
 			lastm = tmpm
 		end
 		tmpm = matrix.translation(value[1],value[3],value[2])
+		object_id, is_success = server.spawnObject(matrix.translation(value[1],value[3] + 10,value[2]), 57)  
 		server.addMapLine(peer_id, ui_id, lastm, tmpm, 1, 70, 70, 70, 255)
 		server.addMapObject(peer_id, ui_id, 0, 3, value[1], value[2], 0, 0, 0, 0, string.format("Point #%d", key),
 			POINT_SIZE, "Please fly by")

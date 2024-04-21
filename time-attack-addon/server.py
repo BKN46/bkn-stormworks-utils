@@ -26,7 +26,7 @@ def get_record():
     with open("record/total.tsv", "a") as f:
         f.write(f"{data['steam_id']}\t{player_name}\t{data['time']}\t{data['use_time']}\t{data['cost']}\n")
 
-    requests.post(MIRAI_HOST, json={
+    requests.post(f"http://{MIRAI_HOST}/send", json={
         "group": QQ_GROUP,
         "message": f"直升机竞速挑战赛\n{player_name}({data['steam_id']})做出有效成绩: {tick_to_time(int(data['use_time']))}",
     })
@@ -46,4 +46,4 @@ def get_steam_name(steam_id):
     except Exception as e:
         return ""
 
-app.run(port=5432, debug=True, use_reloader=False)
+app.run(host="0.0.0.0", port=5432, debug=True, use_reloader=False)

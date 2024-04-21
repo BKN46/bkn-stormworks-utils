@@ -5,10 +5,9 @@ RACE_STARTED, RACE_READY = false, false
 RACE_VALID = true
 PLAYER_ID, VEHICLE_ID, PASSENGER_ID = -1, -1, -1
 PLAYER_NAME, PLAYER_STEAM_ID = "", ""
-UI_TOP = server.getMapID()
 COST = -1
 NOW_POINT = 1
-TIMER = 0
+G_TIMER, TIMER = 0, 0
 
 SEND_CACHE = {}
 DELAY_EVENTS = {}
@@ -28,6 +27,7 @@ CHECK_POINTS = {
 	{-29346, 90512, 25},
 	{-29682, 90750, 88},
 }
+HOME_POS = {-31142, 91257, 24}
 START_POS = {-31114, 91178, 25}
 POINT_SIZE = 10
 
@@ -38,11 +38,18 @@ function onCreate(is_world_create)
 end
 
 function onTick(game_ticks)
-	if game_ticks % 30 == 0 then
-		-- gameSet()
+	if UI_TOP == nil then
+		UI_TOP = server.getMapID()
+	end
+	S_NOTIFY, S_SET_SEAT = server.notify, server.setSeated
+	PLAYER_OBJ_ID, is_success = server.getPlayerCharacterID(PLAYER_ID)
+	G_TIMER = G_TIMER + 1
+
+	if G_TIMER % 30 == 0 then
+		gameSet()
+		-- refreshUI(PLAYER_ID)
 		if RACE_STARTED then
-			object_id, is_success = server.getPlayerCharacterID(PLAYER_ID)
-			vehicle_id, is_success = server.getCharacterVehicle(object_id)
+			vehicle_id, is_success = server.getCharacterVehicle(PLAYER_OBJ_ID)
 			if is_success then
 				VEHICLE_ID = vehicle_id
 			end
@@ -52,35 +59,47 @@ function onTick(game_ticks)
 		else
 			NOW_POINT = 1
 			TIMER = 0
-			-- if PASSENGER_ID ~= -1 then
-			-- 	server.killCharacter(PASSENGER_ID)
-			-- 	PASSENGER_ID = -1
-			-- end
 		end
-	if game_ticks % 300 == 0 then
+	end
+	if G_TIMER % 300 == 0 then
 		if RACE_STARTED then
 			sendData()
 		end
 	end
 
 	if RACE_STARTED then
-		TIMER = TIMER + 1
+		if server.getObjectData(PASSENGER_ID).dead then
+			server.notify(PLAYER_ID, "Failed", "Your assenger dead, please try again.", 2)
+			return
+		end
+		TIMER = TIMER + game_ticks
 		checkPoint()
 	elseif RACE_READY then
+		transform_matrix, is_success = server.getVehiclePos(VEHICLE_ID)
+		x, z, y = matrix.position(transform_matrix)
 		if dist3(x-CHECK_POINTS[1][1], y-CHECK_POINTS[1][2], z-CHECK_POINTS[1][3])<=POINT_SIZE then
 			RACE_STARTED = true
 			NOW_POINT = 2
 			sendStart()
+			server.announce("START", "Race start!")
 		end
 	end
-	refreshUI(PLAYER_ID)
+
+	for k, v in pairs(DELAY_EVENTS) do
+        if v.TIME > 0 then
+            DELAY_EVENTS[k].TIME = DELAY_EVENTS[k].TIME - game_ticks
+        else
+            v.DO(table.unpack(v.PARAM))
+            DELAY_EVENTS[k] = nil
+        end
+    end
 end
 
 function onPlayerJoin(steam_id, name, peer_id, admin, auth)
 	PLAYER_ID = peer_id
 	PLAYER_NAME = name
 	PLAYER_STEAM_ID = steam_id
-	server.notify(peer_id, "Welcome", "Time Attack Addon loaded", 4)
+	server.notify(peer_id, "Welcome", string.format("Time Attack Addon loaded\n%s(%s)", PLAYER_NAME, PLAYER_STEAM_ID), 4)
 	createUI(peer_id)
 end
 
@@ -98,15 +117,22 @@ function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command,
 		server.notify(user_peer_id, "debug", string.format("(%.2f, %.2f, %.2f)", x, y, z), 2)
 	elseif (command == "?draw") then
 		createUI(user_peer_id)
+	elseif (command == "?home") then
+		transform_matrix = matrix.translation(HOME_POS[1], HOME_POS[3], HOME_POS[2])
+		is_success = server.setPlayerPos(user_peer_id, transform_matrix)
+		RACE_STARTED, RACE_READY = false, false
 	elseif (command == "?start") then
 		if RACE_READY then
 			server.notify(user_peer_id, "Re-ready", "All status reset.", 8)
 		end
 		RACE_STARTED, TIMER = false, 0
 		NOW_POINT = 1
-		getReady(user_peer_id)
+		getReady(user_peer_id, one)
 	elseif (command == "?ping") then
 		sendPing()
+	elseif (command == "?clean") then
+		server.cleanVehicles()
+		RACE_STARTED, RACE_READY = false, false
 	elseif (command == "?switch_upload") then
 		if USE_HTTP then
 			USE_HTTP = false
@@ -115,6 +141,15 @@ function onCustomCommand(full_message, user_peer_id, is_admin, is_auth, command,
 			USE_HTTP = true
 			server.notify(user_peer_id, "HTTP", "Auto upload enabled", 8)
 		end
+	elseif (command == "?debug") then
+		VEHICLE_DATA, is_success = server.getVehicleComponents(VEHICLE_ID)
+		transform_matrix, is_success = server.getVehiclePos(VEHICLE_ID)
+		server.announce("DEBUG", dump({
+			-- transform_matrix         
+			server.getObjectData(PLAYER_OBJ_ID),
+			server.getObjectData(PASSENGER_ID)
+			-- DELAY_EVENTS
+        }), user_peer_id)
 	end
 
 end
@@ -128,7 +163,7 @@ end
 
 function onVehicleSpawn(vehicle_id, peer_id, x, y, z, cost)
 	if RACE_READY or RACE_STARTED then
-		RACE_READY, RACE_STARTED = false
+		RACE_READY, RACE_STARTED = false, false
 	end
 	if peer_id == -1 then
 		return
@@ -136,6 +171,10 @@ function onVehicleSpawn(vehicle_id, peer_id, x, y, z, cost)
 	VEHICLE_ID = vehicle_id
 	COST = cost
 	server.notify(peer_id, "Vehicle Spawned", "Enter ?start to start the race", 4)
+end
+
+function onVehicleDespawn(vehicle_id, peer_id)
+	RACE_READY, RACE_STARTED = false, false
 end
 
 function checkPoint()
@@ -148,17 +187,20 @@ function checkPoint()
 
 	if dist3(x-px, y-py, z-pz)>20 then
 		RACE_STARTED, RACE_READY = false, false
-		server.notify(peer_id, "No Passenger", string.format("Passenger not with the vehicle.\nPlease restart."), 2)
+		server.notify(PLAYER_ID, "No Passenger", string.format("Passenger not with the vehicle.\nPlease restart."), 2)
 	end
 
 	if dist3(x-CHECK_POINTS[NOW_POINT][1], y-CHECK_POINTS[NOW_POINT][2], z-CHECK_POINTS[NOW_POINT][3])<=POINT_SIZE then
 		if NOW_POINT==1 then
 			RACE_STARTED, RACE_READY = false, false
-			server.notify(peer_id, "Finish", string.format("Use time %s", getTimeStr(TIMER)), 4)
+			server.notify(PLAYER_ID, "Finish", string.format("Use time %s", getTimeStr(TIMER)), 4)
+			server.announce("FINISH", string.format("Use time %s", getTimeStr(TIMER)))
+			sendData()
 			sendEnd()
 		else
+			server.notify(PLAYER_ID, "Checkpoint", string.format("You have reached point %d/13\nUse time %s", NOW_POINT, getTimeStr(TIMER)), 4)
+			server.announce("CHECKPOINT", string.format("You have reached point %d/13\nUse time %s", NOW_POINT, getTimeStr(TIMER)))
 			NOW_POINT = NOW_POINT + 1
-			server.notify(peer_id, "Checkpoint", string.format("You have reached point #%d\nUse time %s", NOW_POINT, getTimeStr(TIMER)), 4)
 			if NOW_POINT > #CHECK_POINTS then
 				NOW_POINT = 1
 			end
@@ -168,31 +210,40 @@ function checkPoint()
 end
 
 function getTimeStr(time)
-	return string.format("%02d:%02d:%03d", time/3600, time/60%60, (time%60)/60*1000)
+	return string.format("%02d:%02d:%03d", math.floor(time/3600), math.floor(time/60%60), math.floor((time%60)/60*1000))
 end
 
-function getReady(user_peer_id):
+function getReady(user_peer_id, one)
+	if one==nil then
+		lift = 3
+	else
+		lift = tonumber(one)
+	end
 	if VEHICLE_ID == -1 then
 		server.notify(user_peer_id, "Vehicle", "Please spawn a vehicle first", 2)
 		return
 	end
+	-- is_success = server.resetVehicleState(VEHICLE_ID)
 	VEHICLE_DATA, is_success = server.getVehicleComponents(VEHICLE_ID)
 	if #VEHICLE_DATA.components.seats<2 then
 		server.notify(peer_id, "Vehicle Invalid", "Vehicle must have at least 2 seats", 2)
 		server.removeVehicle(VEHICLE_ID)
 		VEHICLE_ID = -1
-	else:
+	else
 		getOnVehicle(VEHICLE_ID, user_peer_id, 1, 0)
-		transform_matrix = matrix.translation(START_POS[1], START_POS[3] + 5, START_POS[2])
+		transform_matrix = matrix.translation(START_POS[1], START_POS[3] + lift, START_POS[2])
+		-- out_matrix = matrix.rotationY(3.14)
 		is_success = server.moveVehicle(VEHICLE_ID, transform_matrix)
+		-- is_success = server.setVehiclePos(VEHICLE_ID, matrix.multiply(transform_matrix, out_matrix))
 
+		server.killCharacter(PASSENGER_ID)
 		PASSENGER_ID, is_success = server.spawnCharacter(
-			matrix.translation(START_POS[1] + 10, START_POS[3], START_POS[2] + 10),
+			matrix.translation(START_POS[1] + 15, START_POS[3], START_POS[2] + 10),
 			(OUTFIT_TYPE)
 		)
 		-- server.announce("DEBUG", dump(VEHICLE_DATA))
-		seat_name = VEHICLE_DATA.components.seats[2][1]
-		server.setSeated(PASSENGER_ID, VEHICLE_ID, seat_name)
+		seat_name = VEHICLE_DATA.components.seats[2].name
+		addDelay(120, S_SET_SEAT, {PASSENGER_ID, VEHICLE_ID, seat_name})
 		RACE_READY = true
 	end
 end
@@ -210,7 +261,7 @@ function createUI(peer_id)
 			lastm = tmpm
 		end
 		tmpm = matrix.translation(value[1],value[3],value[2])
-		object_id, is_success = server.spawnObject(matrix.translation(value[1],value[3] + 10,value[2]), 57)  
+		-- object_id, is_success = server.spawnObject(matrix.translation(value[1],value[3] + 10,value[2]), 57)  
 		server.addMapLine(peer_id, ui_id, lastm, tmpm, 1, 70, 70, 70, 255)
 		server.addMapObject(peer_id, ui_id, 0, 3, value[1], value[2], 0, 0, 0, 0, string.format("Point #%d", key),
 			POINT_SIZE, "Please fly by")
@@ -219,7 +270,7 @@ end
 
 
 function refreshUI(peer_id)
-	server.removeMapID(peer_id, UI_TOP)
+	server.removePopup(peer_id, UI_TOP)
 	if RACE_STARTED then
 		if NOW_POINT==1 then
 			show_progess = #CHECK_POINTS
@@ -238,6 +289,7 @@ end
 function gameSet()
 	server.setGameSetting("vehicle_damage", true)
 	server.setGameSetting("vehicle_spawning", false)
+	-- server.setGameSetting("third_person_vehicle", false)
 	server.setGameSetting("player_damage", true)
 	server.setGameSetting("unlock_all_components", true)
 	server.setGameSetting("auto_refuel", true)
@@ -273,10 +325,10 @@ function getOnVehicle(vehicle_id, peer_id, seat_index, retry_times)
 			server.notify(peer_id, "Failed", "Failed to start, maybe seat not enough or range too long", 2)
 			return
 		end
-		addDelay(120, getOnVehicle, {vehicle_id, peer_id, seat_index, retry_times+1})
+		addDelay(180, getOnVehicle, {vehicle_id, peer_id, seat_index, retry_times+1})
 		return
 	end
-	seat_name = VEHICLE_DATA.components.seats[seat_index][1]
+	seat_name = VEHICLE_DATA.components.seats[seat_index].name
 	-- server.setVehicleSeat(vehicle_id, seat_name, 0, 0, 0, 0, true, false, false, false, false, false)
 	object_id, is_success = server.getPlayerCharacterID(peer_id)
 	server.setSeated(object_id, vehicle_id, seat_name)
@@ -326,17 +378,17 @@ end
 
 function httpReply(port, request_body, response_body)
 	if response_body == "ping:yeah" then
-		sever.notify(PLAYER_ID, "Ping", "Upload works!", 4)
+		S_NOTIFY(PLAYER_ID, "Ping", "Upload works!", 4)
 	elseif response_body == "ping:nah" then
-		sever.notify(PLAYER_ID, "Ping", "Upload failed!", 2)
+		S_NOTIFY(PLAYER_ID, "Ping", "Upload failed!", 4)
 	elseif response_body == "upload:done" then
-		sever.notify(PLAYER_ID, "Race data", "Record successfully uploaded", 4)
+		S_NOTIFY(PLAYER_ID, "Race data", "Record successfully uploaded", 4)
 	end
 end
 
 function startsWith(str, start) return str:sub(1, #start) == start end
 function dist2(x, y) return math.sqrt(x * x + y * y) end
-function dist3(x, y, z) return math.pow(x * x + y * y + z * z, 1/3) end
+function dist3(x, y, z) return (x * x + y * y + z * z)^(1/3) end
 function split(a, b) if b == nil then b = "%s" end
 	local c = {}
 	for d in string.gmatch(a, "([^" .. b .. "]+)") do table.insert(c
@@ -353,4 +405,4 @@ function dump(b) if type(b) == 'table' then local d = '{ '
 		return d .. '} '
 	else return tostring(b) end
 end
-function dumpJson(b)if type(b)=='table'then local d='{'for e,f in pairs(b)do if type(e)~='number'then e='"'..e..'"'end;d=d..'"'..e..'":'..dumpJson(f)..','end;return d..'}'else return tostring(b)end end
+function dumpJson(b)if type(b)=='table'then local d='{'for e,f in pairs(b)do if type(e)~='number'then e='"'..e..'"'end;d=d..'"'..e..'":'..dumpJson(f)..','end;return d..'}'else return tostring(b) end end

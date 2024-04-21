@@ -26,6 +26,7 @@ def get_start():
     NOW_SESSION = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
     DATA = []
     START_TIME = time.time()
+    open(f"tmp.tsv", "w").write("x\ty\tz\ttimer\textra\tmsg\n")
     print(f"开始计时, 玩家: {PLAYER}, steam_id: {STEAM_ID}, 车辆费用: {COST}")
     return "start:done"
 
@@ -35,6 +36,7 @@ def get_info():
         [x, y, z, timer, extra, msg]
     '''
     value = request.args.get("value").replace('|||', '\n') # type: ignore
+    open(f"tmp.tsv", "a").write("\n".join([x.replace(",", "\t") for x in value.split("\n")]) + "\n")
     DATA.extend([x.split(",") for x in value.split("\n")])
     for line in value.split("\n"):
         if "Point " in line:
@@ -65,7 +67,7 @@ def get_end():
     print("完成比赛！")
     END_TIME = time.time()
     use_time = request.args.get("time") or 0 # type: ignore
-    auto_save_path = os.path.join(find_sw_path(), "auto_save.xml")
+    auto_save_path = os.path.join(find_sw_path(), "tmp\\autosave.xml")
     if os.path.exists(auto_save_path):
         vehicle_data = open(auto_save_path, "rb").read().hex()
         vehicle_png = open(auto_save_path.replace(".xml", ".png"), "rb").read().hex()
@@ -85,7 +87,11 @@ def get_end():
         "vehicle_data": vehicle_data,
         "vehicle_png": vehicle_png,
     }
-    dump(data, open(f"../data/{NOW_SESSION}.sav", "w"), indent=4, ensure_ascii=False)
+    os.makedirs("./data", exist_ok=True)
+    try:
+        dump(data, open(f"./data/{NOW_SESSION}.sav", "w"), indent=4, ensure_ascii=False)
+    except Exception as e:
+        open(f"./data/{NOW_SESSION}_repr.sav", "w").write(repr(data))
     res = post(f"http://{SERVER_HOST}/record", json=data)
     print(f"成绩上传完成! 用时: {use_time}")
     return "upload:done"
@@ -107,4 +113,4 @@ def tick_to_time(tick):
     return f"{minute:02}:{second:02}.{ms:03}"
 
 
-app.run(port=5588, debug=True, use_reloader=False)
+app.run(port=5588, debug=False, use_reloader=False)

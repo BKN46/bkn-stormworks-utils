@@ -7,11 +7,23 @@
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
 function dump(b) 
-    if type(b) == 'table' then local d = '{ '
-        for e, f in pairs(b) do if type(e) ~= 'number' then e = '"' ..
-                    e .. '"'
-            end
+    if not b then return 'nil'
+    elseif type(b) == 'table' then local d = '{ '
+        for e, f in pairs(b) do
+            if type(e) ~= 'number' then e = '"' .. e .. '"' end
             d = d .. '' .. e .. ': ' .. dump(f) .. ', '
+        end
+        return d .. '} '
+    elseif type(b) == 'function' then return '<function>'
+    else return tostring(b) end
+end
+
+function dumpBase(b) 
+    if not b then return 'nil'
+    elseif type(b) == 'table' then
+        for e, f in pairs(b) do
+            if type(e) ~= 'number' then e = '"' .. e .. '"' end
+            d = d .. '' .. e .. ': ' .. type(f) .. ', '
         end
         return d .. '} '
     elseif type(b) == 'function' then return '<function>'

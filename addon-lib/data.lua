@@ -74,6 +74,7 @@ function saveGame()
         interval_events = INTERVAL_EVENTS,
     }
     g_savedata = data
+    return data
 end
 
 function loadGame()

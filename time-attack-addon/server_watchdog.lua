@@ -1,47 +1,78 @@
 HEARTBEAT_TIMER = 0
-HEARTBEAT_INTERVAL = 5 * 60
-LAST_TICK_TIME = server.getTimeMillisec()
+-- HEARTBEAT_INTERVAL = property.slider("Heartbeat Interval(Sec)", 1, 600, 1, 5) * 60
+HEARTBEAT_INTERVAL = 300
+START_TIMER = HEARTBEAT_INTERVAL * 4
+LAST_TICK_TIME = 0
+-- HTTP_PORT = property.slider("Use HTTP Port", 1000, 9999, 1, 5588)
+HTTP_PORT = 5588
+TPS_STAT = {}
 
 function onTick(game_ticks)
-	-- calculate TPS
+	-- Regist
+	FUNC_MAP = {
+		["announce"]=server.announce,
+		["save"]=server.save,
+	}
+
 	local now_time = server.getTimeMillisec()
-	local tps = game_ticks / (now_time - LAST_TICK_TIME) * 1000
+	if LAST_TICK_TIME ~= 0 then
+		tps = game_ticks / (now_time - LAST_TICK_TIME) * 1000
+		table.insert(TPS_STAT, tps)
+	end
 	LAST_TICK_TIME = now_time
+
+	if START_TIMER > 0 then
+		START_TIMER = START_TIMER - 1
+		if START_TIMER == 0 then
+			server.announce("Watchdog", "No valid backend server found, watchdog will be disabled.")
+		end
+	end
+	if START_TIMER == 0 then return end
 
 	-- heartbeat
 	HEARTBEAT_TIMER = HEARTBEAT_TIMER + 1
 	if HEARTBEAT_TIMER >= HEARTBEAT_INTERVAL then
 		HEARTBEAT_TIMER = 0
-		sendToServer("heartbeat", {tps = tps})
+		-- calculate average TPS
+		local tps_sum = 0
+		for i = 1, #TPS_STAT do
+			tps_sum = tps_sum + TPS_STAT[i]
+		end
+		tps = tps_sum / #TPS_STAT
+		TPS_STAT = {}
+		-- send
+		sendToServer("heartbeat", {["tps"] = tps})
+	end
+
+	if #TPS_STAT > HEARTBEAT_INTERVAL then
+		TPS_STAT = {}
 	end
 end
 
 function sendToServer(path, data_table)
+	local req_path = string.format("/%s", path)
 	if data_table ~= nil then
-		server.httpGet(5588, string.format("/%s", path))
-	else
 		local data_string = ""
 		for key, value in pairs(data_table) do
 			data_string = data_string .. key .. "=" .. value .. "&"
 		end
 		data_string = string.sub(data_string, 1, -2)
-		server.httpGet(5588, string.format("/%s?%s", path, data_string))
+		req_path = string.format("/%s?%s", path, data_string)
 	end
+	-- server.announce("Watchdog req", req_path)
+	server.httpGet(HTTP_PORT, req_path)
 end
 
-FUNC_MAP = {
-	"announce"=server.announce,
-	"save"=server.save,
-}
-
 function httpReply(port, request_body, response_body)
+	-- server.announce("Watchdog rsp", response_body)
 	-- rsp: [function]||[param1]|[param2],...
 	local rsp = split(response_body, "||")
 	if #rsp < 2 then return end
-	local func, params = rsp[1], split(rsp[2], "|")
+	START_TIMER = -1
+	local func, params = rsp[1], {table.unpack(rsp, 2, #rsp)}
 
 	-- call function
-	if FUNC_MAP[func] then
+	if FUNC_MAP[func] ~= nil then
 		FUNC_MAP[func](table.unpack(params))
 	end
 end

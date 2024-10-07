@@ -1,4 +1,5 @@
 import math
+import os
 from typing import List, Tuple
 
 from modules import COMPONENT_LIB, Port
@@ -6,7 +7,7 @@ from modules import COMPONENT_LIB, Port
 
 MC_BASE = """
 <?xml version="1.0" encoding="UTF-8"?>
-<microprocessor name="##NAME##" description="##DESC##" width="##WIDTH##" length="##LENGTH##" id_counter="##NUM_COMP##" id_counter_node="##NUM_NODE##">
+<microprocessor name="##NAME##" description="##DESC##" width="##WIDTH##" length="##LENGTH##" id_counter="##NUM_COMP##" id_counter_node="##NUM_NODE##" sym11="23764" sym12="1372" sym13="1236">
 	<nodes>
 ##NODES##
 	</nodes>
@@ -67,7 +68,7 @@ class Node:
 
 
 class Component:
-    def __init__(self, module: str, comp_id: int) -> None:
+    def __init__(self, module: str, comp_id: int, mod_id: int=-1) -> None:
         mod_find = [
             (i, x)
             for (i, x) in enumerate(COMPONENT_LIB)
@@ -76,8 +77,13 @@ class Component:
         if not mod_find:
             raise Exception(f"No module named or aliased {module}")
         self.mod_id, self.mod = mod_find[0]
-        self.id = comp_id
         self.input: List[Tuple[int, int] | None] = [None for _ in range(len(self.mod.inport))]
+
+        if mod_id != -1:
+            self.mod_id = mod_id
+            self.input = [None]
+
+        self.id = comp_id
         self.pos = (0, 0)
         self.attr = {}
         self.value = {}
@@ -112,14 +118,17 @@ class Component:
 
     def get_input_node_str(self, tab_num: int = 5):
         if self.input:
+            inputs = []
+            if self.mod.name in ['Composite Write (number)', 'Composite Write (on/off)']:
+                if self.input[0]:
+                    inputs.append(f'<inc component_id="{self.input[0][0]}" node_index="{self.input[0][1]}"/>')
+                self.input = self.input[1:]
+            for i, x in enumerate(self.input):
+                if x:
+                    inputs.append(f'<in{i+1} component_id="{x[0]}" node_index="{x[1]}"/>')
             return (
                 tab(tab_num)
-                + f"\n{tab(tab_num)}".join(
-                    [
-                        f'<in{i+1} component_id="{x[0]}" node_index="{x[1]}"/>'
-                        for i, x in enumerate(self.input) if x
-                    ]
-                )
+                + f"\n{tab(tab_num)}".join(inputs)
                 + "\n"
             )
         return ""
@@ -145,7 +154,7 @@ class Component:
 
 class Microcontroller:
     def __init__(
-        self, name: str = "SW HDL Microcontroller", desc: str = "No desc."
+        self, name: str = "SW HDL by BKN", desc: str = "Automatically generated"
     ) -> None:
         self.name = name
         self.desc = desc
@@ -168,17 +177,29 @@ class Microcontroller:
         node_mode: int = 0,
         label: str = "label",
         desc: str = "",
-    ) -> int:
+    ) -> Component:
+        '''
+        node_mode: 0 output 1 input
+        node_type: 0 bool 1 num
+        '''
         node_id = self.get_id()
+        if label=="label":
+            label = f"Node {len(self.nodes)}"
         new_node = Node(len(self.nodes) + 1, node_type, node_id, mode=node_mode, label=label, desc=desc)
-        new_bridge = Component("", node_id)
+        new_bridge = Component("", node_id, mod_id=node_mode+node_type*2)
         self.nodes.append(new_node)
         self.bridges.append(new_bridge)
-        return node_id
+        return new_bridge
 
     def get_xml(self):
         width = math.ceil(math.sqrt(len(self.nodes)))
         length = math.ceil(len(self.nodes) / width)
+
+        for i, c in enumerate(self.nodes):
+            c.pos = [i%width, i//width]
+
+        for i, c in enumerate(self.components):
+            c.pos = (0, i * -0.75) # type: ignore
 
         res = MC_BASE\
                 .replace("##NAME##", self.name)\
@@ -197,7 +218,23 @@ class Microcontroller:
 
 if __name__ == "__main__":
     mc = Microcontroller()
-    mc.add_node()
-    mc.add_comp("Lua")
+    in_bool_1 = mc.add_node(node_type=0, node_mode=1)
+    in_bool_2 = mc.add_node(node_type=0, node_mode=1)
+    out_num_1 = mc.add_node(node_type=1, node_mode=0)
+    c_write_num_1 = mc.add_comp("Composite Write (number)")
+    c_write_bool_1 = mc.add_comp("Composite Write (on/off)")
+    c_read_num_1 = mc.add_comp("Composite Read (number)")
+    c_lua = mc.add_comp("Lua Script")
+    # c_lua.attr['script'] = '-- test\n'*800
+
+    c_write_bool_1.set_input(0, c_write_num_1.id, 0)
+    c_write_bool_1.set_input(10, in_bool_1.id, 0)
+    c_write_bool_1.set_input(11, in_bool_2.id, 0)
+    c_lua.set_input(0, c_write_bool_1.id, 0)
+    c_read_num_1.set_input(0, c_lua.id, 0)
+    out_num_1.set_input(0, c_read_num_1.id, 0)
+
     res = mc.get_xml()
-    print(res)
+    from utils import find_sw_path
+    hdl_path = os.path.join(find_sw_path() or './', "hdl_test.xml")
+    print(res, file=open(hdl_path, 'w'))

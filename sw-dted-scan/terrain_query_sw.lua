@@ -290,10 +290,15 @@ end
 
 function onDraw()
 	screen.drawText(1,1,string.format("g_init: %s", tostring(g_init)))
-	screen.drawText(1,6,string.format("g_grid: %d", #g_grid))
-	screen.drawText(1,11,string.format("g_res: %d", #g_residuals))
-	screen.drawText(1,16,string.format("g_meta: %d", #g_meta))
-	screen.drawText(1,21,string.format("cache: %d", #g_cache_order))
+	
+	-- These are initialized as {} at the top, so # is safe, but we'll safeguard them anyway
+	screen.drawText(1,6,string.format("g_grid: %d", g_grid and #g_grid or 0))
+	screen.drawText(1,11,string.format("g_res: %d", g_residuals and #g_residuals or 0))
+	
+	-- g_meta starts as nil, so we check if it exists before assigning a 1 or 0
+	screen.drawText(1,16,string.format("g_meta: %d", g_meta and 1 or 0))
+	
+	screen.drawText(1,21,string.format("cache: %d", g_cache_order and #g_cache_order or 0))
 	screen.drawText(1,26,string.sub(data_str or "no data", 1, 50))
 	screen.drawText(1,31,string.sub(meta_str or "no meta", 1, 50))
 	screen.drawText(1,36,string.format("tmp: %d", tmp_value))

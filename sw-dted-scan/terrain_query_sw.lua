@@ -15,7 +15,7 @@ g_init = false
 data_str = nil
 meta_str = nil
 tmp_value = 0
-dat_file_num = 361
+dat_file_num = 925
  
 function parse_json(str)
 	local m = {}
@@ -60,65 +60,102 @@ function cache_put(k, v)
 	table.insert(g_cache_order, k)
 end
  
-function load_data()
-	if g_init then return end
+-- Global states for chunked loading
+g_load_state = 0
+g_prop_idx = 1
+g_data_parts = {}
+g_line_iter = nil
+g_current_sec = nil
 
-	data_str = ""
-	for i = 1, dat_file_num do
-		local part = property.getText("terrain_data_" .. i)
-		if part and part ~= "" then
-			data_str = data_str .. part
-			tmp_value = tmp_value + 1
-		else
-			break
-		end
-	end
-	meta_str = property.getText("terrain_meta")
+function process_init()
+	if g_init then return end
 	
-	if not data_str or not meta_str then
-        noDataError()
-		return
-	end
-	
-	g_meta = parse_json(meta_str)
-	if not g_meta then
-        noMetaDataError()
-		return
-	end
-	
-	local sec = nil
-	for ln in data_str:gmatch("[^|]+") do
-		if ln == "#GRID" then
-			sec = "g"
-		elseif ln == "#RESIDUALS" then
-			sec = "r"
-		elseif sec and ln:find(",") then
-			local p = {}
-			for x in ln:gmatch("[^,]+") do table.insert(p, x) end
+	-- STATE 0: Read properties in chunks to prevent timeout
+	if g_load_state == 0 then
+		local chunk_limit = 50 -- Read 50 properties per tick
+		for i = 1, chunk_limit do
+			if g_prop_idx > dat_file_num then
+				g_load_state = 1
+				break
+			end
 			
-			if sec == "g" and #p >= 3 then
-				local gx = b64d(p[1])
-				local gz = b64d(p[2])
-				local h = (b64d(p[3]) - 10000) / 10
+			local part = property.getText("terrain_data_" .. g_prop_idx)
+			if part and part ~= "" then
+				table.insert(g_data_parts, part)
+				tmp_value = tmp_value + 1
+			else
+				g_load_state = 1
+				break
+			end
+			g_prop_idx = g_prop_idx + 1
+		end
+		
+	-- STATE 1: Concatenate strings and parse JSON meta
+	elseif g_load_state == 1 then
+		-- table.concat is drastically faster and memory-safe compared to "str = str .. part"
+		data_str = table.concat(g_data_parts) 
+		g_data_parts = nil -- Free table memory
+		
+		meta_str = property.getText("terrain_meta")
+		
+		if not data_str or not meta_str then
+			g_init = true -- Fail gracefully if missing
+			return
+		end
+		
+		g_meta = parse_json(meta_str)
+		if not g_meta then
+			g_init = true
+			return
+		end
+		
+		-- Create the iterator for the next state
+		g_line_iter = data_str:gmatch("[^|]+")
+		g_load_state = 2
+		
+	-- STATE 2: Parse the database incrementally
+	elseif g_load_state == 2 then
+		local lines_per_tick = 150 -- Parse 150 database lines per tick
+		for i = 1, lines_per_tick do
+			local ln = g_line_iter()
+			
+			if not ln then
+				-- We ran out of lines, loading is complete!
+				g_init = true
+				g_line_iter = nil
+				break
+			end
+			
+			if ln == "#GRID" then
+				g_current_sec = "g"
+			elseif ln == "#RESIDUALS" then
+				g_current_sec = "r"
+			elseif g_current_sec and ln:find(",") then
+				local p = {}
+				for x in ln:gmatch("[^,]+") do table.insert(p, x) end
 				
-				if not g_grid[gx] then g_grid[gx] = {} end
-				g_grid[gx][gz] = h
-				
-			elseif sec == "r" and #p >= 5 then
-				local gx = b64d(p[1])
-				local gz = b64d(p[2])
-				local xo = (b64d(p[3]) - 1000) / 10
-				local zo = (b64d(p[4]) - 1000) / 10
-				local re = (b64d(p[5]) - 500) / 10
-				
-				if not g_residuals[gx] then g_residuals[gx] = {} end
-				if not g_residuals[gx][gz] then g_residuals[gx][gz] = {} end
-				table.insert(g_residuals[gx][gz], {xo, zo, re})
+				if g_current_sec == "g" and #p >= 3 then
+					local gx = b64d(p[1])
+					local gz = b64d(p[2])
+					local h = (b64d(p[3]) - 10000) / 10
+					
+					if not g_grid[gx] then g_grid[gx] = {} end
+					g_grid[gx][gz] = h
+					
+				elseif g_current_sec == "r" and #p >= 5 then
+					local gx = b64d(p[1])
+					local gz = b64d(p[2])
+					local xo = (b64d(p[3]) - 1000) / 10
+					local zo = (b64d(p[4]) - 1000) / 10
+					local re = (b64d(p[5]) - 500) / 10
+					
+					if not g_residuals[gx] then g_residuals[gx] = {} end
+					if not g_residuals[gx][gz] then g_residuals[gx][gz] = {} end
+					table.insert(g_residuals[gx][gz], {xo, zo, re})
+				end
 			end
 		end
 	end
-	
-	g_init = true
 end
  
 function interp(rl, xo, zo, res)
@@ -150,10 +187,8 @@ function interp(rl, xo, zo, res)
 end
  
 function terrain_h(x, z)
-	-- 
-	if not g_init then load_data() end
-	if not g_meta then return 0 end
-	
+
+	if not g_init or not g_meta then return 0 end	
 	--  -1
 	local max_x = g_meta.min_x + (g_meta.grid_width or 1000) * g_meta.resolution
 	local max_z = g_meta.min_z + (g_meta.grid_depth or 1000) * g_meta.resolution
@@ -241,6 +276,14 @@ function terrain_clear_cache()
 end
 
 function onTick()
+	-- Drive the state machine until fully loaded
+	if not g_init then
+		process_init()
+		output.setNumber(1, 0) -- Output an altitude of 0 while the system is booting
+		return
+	end
+	
+	-- Normal operation once loaded
 	x,z=input.getNumber(1),input.getNumber(2)
 	output.setNumber(1, terrain_h(x,z))
 end

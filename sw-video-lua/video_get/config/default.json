@@ -1,0 +1,32 @@
+﻿{
+    "enabled":  true,
+    "limits":  {
+        "gray":  {
+                    "max_width":  320,
+                    "max_height":  320
+                },
+        "rgb":  {
+                    "max_width":  320,
+                    "max_height":  320
+                },
+        "max_active_slots":  4
+    },
+    "hooking":  {
+        "auto_install":  true,
+        "fail_closed":  true,
+        "require_gate_for_target_patches":  true,
+        "allow_target_patches":  true
+    },
+    "capture":  {
+        "max_fps":  60,
+        "min_unbound_texture_upload_width":  16,
+        "min_unbound_texture_upload_height":  16,
+        "source_texture_probe_enabled":  false,
+        "source_texture_probe_unsafe_confirm":  false
+    },
+    "mock_render":  {
+        "enabled":  false,
+        "max_fps":  60,
+        "update_initialized_slots":  false
+    }
+}

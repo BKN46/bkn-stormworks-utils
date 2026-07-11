@@ -1,0 +1,25 @@
+﻿{
+    "manifest_version":  1,
+    "id":  "video_get",
+    "name":  "Video Get",
+    "version":  "0.1.0",
+    "description":  "Expose Lua video input pixels through video.* APIs.",
+    "entry":  {
+                  "type":  "native_dll",
+                  "path":  "StormworksVideoGet.dll"
+              },
+    "supported_process":  "stormworks64.exe",
+    "architecture":  "x64",
+    "game_builds":  [
+                        {
+                            "label":  "local-dev-placeholder",
+                            "sha256":  "55914301628a31b278ff1d4aa9fd0c0446341759bf72083a8e3aa1dff859e6c3",
+                            "signatures":  "signatures/local-dev.json"
+                        }
+                    ],
+    "default_enabled":  true,
+    "single_player_only":  true,
+    "docs":  "docs/README.md",
+    "config_schema":  "config/schema.json",
+    "default_config":  "config/default.json"
+}

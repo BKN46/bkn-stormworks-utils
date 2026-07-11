@@ -1,0 +1,16 @@
+[package]
+name = "stormworks_video_get"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "StormworksVideoGet"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+stormworks_modkit_shared = { path = "../shared" }
+time.workspace = true
+windows-sys.workspace = true

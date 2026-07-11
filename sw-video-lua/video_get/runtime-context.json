@@ -1,0 +1,16 @@
+﻿{
+    "schema_version":  1,
+    "manager_home":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get",
+    "plugin_id":  "video_get",
+    "plugin_dir":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get",
+    "manifest_path":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get\\plugin.json",
+    "config_path":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get\\config\\default.json",
+    "signatures_path":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get\\signatures\\local-dev.json",
+    "hook_plan_path":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get\\hook-plan.json",
+    "game_exe":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\stormworks64.exe",
+    "game_sha256":  "55914301628a31b278ff1d4aa9fd0c0446341759bf72083a8e3aa1dff859e6c3",
+    "game_build_label":  "local-replace-dll",
+    "mode":  "replace_dll",
+    "process_id":  null,
+    "log_dir":  "D:\\SteamLibrary\\steamapps\\common\\Stormworks\\video_get\\logs"
+}

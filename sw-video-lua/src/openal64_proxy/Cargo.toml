@@ -1,0 +1,15 @@
+[package]
+name = "stormworks_openal64_proxy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "OpenAL64"
+crate-type = ["cdylib"]
+
+[dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader"
+] }

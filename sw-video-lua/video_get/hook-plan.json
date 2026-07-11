@@ -1,0 +1,116 @@
+﻿{
+    "schema_version":  1,
+    "source":  "replace_dll_local_video_get",
+    "generated_at":  "2026-07-11T04:00:02.2388860Z",
+    "game_sha256":  "55914301628a31b278ff1d4aa9fd0c0446341759bf72083a8e3aa1dff859e6c3",
+    "game_build_label":  "local-replace-dll",
+    "patching_allowed":  true,
+    "dry_run_only":  false,
+    "required_stage":  "lua_api_registration",
+    "accepted_stages":  [
+                            "lua_api_registration",
+                            "microprocessor_input_video_node",
+                            "vehicle_video_logic_graph",
+                            "monitor_render_queue",
+                            "renderer_video_pass",
+                            "additive_monitor_bind"
+                        ],
+    "lua_api":  null,
+    "game_lua":  {
+                     "create_table":  "rva:0xba830",
+                     "push_string":  "rva:0x97f60",
+                     "rawseti":  "rva:0x98570",
+                     "register_table":  "rva:0x1e3ee0",
+                     "arg_slot":  "rva:0x97920"
+                 },
+    "hooks":  [
+                  {
+                      "label":  "component_lua_init_video_table",
+                      "stage":  "lua_api_registration",
+                      "target_va":  "1402e6050",
+                      "replacement":  "stormworks_video_get_component_lua_init_hook_arg1",
+                      "target_abi":  "win64:void(arg1)",
+                      "replacement_abi":  "win64:void(arg1)",
+                      "require_trampoline":  true,
+                      "patch_len":  12,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "input_video_lua_node_binding",
+                      "stage":  "microprocessor_input_video_node",
+                      "target_va":  "140373050",
+                      "replacement":  "stormworks_video_get_input_video_node_update_hook_arg2",
+                      "target_abi":  "win64:void(node, source_candidate)",
+                      "replacement_abi":  "win64:void(node, source_candidate)",
+                      "require_trampoline":  true,
+                      "patch_len":  13,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "video_output_slot_edge_add",
+                      "stage":  "vehicle_video_logic_graph",
+                      "target_va":  "1408c9960",
+                      "replacement":  "stormworks_video_get_video_output_slot_add_hook_arg2",
+                      "target_abi":  "win64:void(output_slot, input_slot)",
+                      "replacement_abi":  "win64:void(output_slot, input_slot)",
+                      "require_trampoline":  true,
+                      "patch_len":  17,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "video_output_slot_edge_remove",
+                      "stage":  "vehicle_video_logic_graph",
+                      "target_va":  "1408c9860",
+                      "replacement":  "stormworks_video_get_video_output_slot_remove_hook_arg2",
+                      "target_abi":  "win64:void(output_slot, input_slot)",
+                      "replacement_abi":  "win64:void(output_slot, input_slot)",
+                      "require_trampoline":  true,
+                      "patch_len":  13,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "video_output_slot_edge_clear",
+                      "stage":  "vehicle_video_logic_graph",
+                      "target_va":  "1408c9810",
+                      "replacement":  "stormworks_video_get_video_output_slot_clear_hook_arg1",
+                      "target_abi":  "win64:void(output_slot)",
+                      "replacement_abi":  "win64:void(output_slot)",
+                      "require_trampoline":  true,
+                      "patch_len":  13,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "monitor_render_queue_probe",
+                      "stage":  "monitor_render_queue",
+                      "target_va":  "140366e90",
+                      "replacement":  "stormworks_video_get_monitor_render_queue_hook_arg6",
+                      "target_abi":  "win64:void(monitor, render_context, arg3, arg4, arg5, arg6_u8)",
+                      "replacement_abi":  "win64:void(monitor, render_context, arg3, arg4, arg5, arg6_u8)",
+                      "require_trampoline":  true,
+                      "patch_len":  15,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "renderer_video_pass_context",
+                      "stage":  "renderer_video_pass",
+                      "target_va":  "1406d1960",
+                      "replacement":  "stormworks_video_get_renderer_video_pass_hook_arg8",
+                      "target_abi":  "win64:void(renderer, render_context, scene_state, arg4, command, frame_a, frame_b, frame_c)",
+                      "replacement_abi":  "win64:void(renderer, render_context, scene_state, arg4, command, frame_a, frame_b, frame_c)",
+                      "require_trampoline":  true,
+                      "patch_len":  13,
+                      "enabled":  true
+                  },
+                  {
+                      "label":  "additive_monitor_texture_bind_video",
+                      "stage":  "additive_monitor_bind",
+                      "target_va":  "140688ec0",
+                      "replacement":  "stormworks_video_get_additive_monitor_video_bind_hook_arg3",
+                      "target_abi":  "win64:void(descriptor, buffers, video_texture_object, overlay_texture_object, arg5, arg6, arg7, arg8)",
+                      "replacement_abi":  "win64:void(descriptor, buffers, video_texture_object, overlay_texture_object, arg5, arg6, arg7, arg8)",
+                      "require_trampoline":  true,
+                      "patch_len":  16,
+                      "enabled":  true
+                  }
+              ]
+}

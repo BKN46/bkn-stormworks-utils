@@ -1,0 +1,311 @@
+﻿{
+  "game_sha256": "55914301628a31b278ff1d4aa9fd0c0446341759bf72083a8e3aa1dff859e6c3",
+  "analysis": {
+    "status": "candidate_only",
+    "binary_refs": "artifacts/modkit/latest-video-get-binary-refs.json",
+    "targeted_decompile": "artifacts/modkit/latest-video-get-targeted-decompile.json",
+    "note": "Addresses are stable for this local hash but are not verified hook patch points."
+  },
+  "symbols": {
+    "lua_api_registration": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "1402e6050",
+          "reason": "Component Lua API initializer that registers debug, async, screen, output, input, map helper, and property tables; targeted decompile shows screen registration through FUN_1401e3ee0 with Lua owner at *(param_1+0x8). Preferred candidate for adding the video table.",
+          "byte_check": {
+            "va": "1402e6050",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 48 89 74 24 18 55 57 41 56 48 8d ac 24 e0 fd ff ff 48 81 ec 20 03 00 00 48 8b 05"
+          }
+        },
+        {
+          "entry": "14009cee0",
+          "reason": "Embedded Lua 5.3 base-library initialization candidate; targeted decompile writes the Lua 5.3 version string and registers C closures into the Lua environment.",
+          "byte_check": {
+            "va": "14009cee0",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 57 48 83 ec 20 ba d8 b9 f0 ff 41 b8 02 00 00 00 48 8b d9 e8 c3 b3 ff ff 33 d2 48"
+          }
+        },
+        {
+          "entry": "1402e6f00",
+          "reason": "One of the functions referencing the onDraw screen-guard string.",
+          "byte_check": {
+            "va": "1402e6f00",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 48 89 6c 24 18 56 57 41 56 48 83 ec 40 0f 29 74 24 30 48 8b f9 48 8b 41 20 48 8b"
+          }
+        },
+        {
+          "entry": "14065add0",
+          "reason": "References property.checkbox and property.slider documentation/API strings.",
+          "byte_check": {
+            "va": "14065add0",
+            "size": 32,
+            "bytes": "48 8b c4 48 89 58 10 48 89 70 18 48 89 78 20 55 41 56 41 57 48 8d 68 a1 48 81 ec 90 00 00 00 0f"
+          }
+        }
+      ]
+    },
+    "current_lua_component_context": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "140317660",
+          "reason": "References lua_filename.",
+          "byte_check": {
+            "va": "140317660",
+            "size": 32,
+            "bytes": "48 8b c4 48 89 58 08 48 89 70 10 48 89 78 18 4c 89 60 20 55 41 56 41 57 48 8b ec 48 81 ec 80 00"
+          }
+        },
+        {
+          "entry": "14032c6c0",
+          "reason": "References lua_table_to_composite error path.",
+          "byte_check": {
+            "va": "14032c6c0",
+            "size": 32,
+            "bytes": "48 8b c4 48 89 58 18 55 56 57 41 54 41 55 41 56 41 57 48 8d 6c 24 a0 48 81 ec 60 01 00 00 0f 29"
+          }
+        },
+        {
+          "entry": "1405d37e0",
+          "reason": "References /script.lua component context path.",
+          "byte_check": {
+            "va": "1405d37e0",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 48 89 4c 24 08 55 56 57 41 54 41 55 41 56 41 57 48 8d 6c 24 d9 48 81 ec c0 00 00"
+          }
+        },
+        {
+          "entry": "1405d3ce0",
+          "reason": "References /script.lua component context path.",
+          "byte_check": {
+            "va": "1405d3ce0",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 44 89 4c 24 20 48 89 54 24 10 55 56 57 41 54 41 55 41 56 41 57 48 8d 6c 24 d9 48"
+          }
+        },
+        {
+          "entry": "1405fa320",
+          "reason": "References /script.lua component context path.",
+          "byte_check": {
+            "va": "1405fa320",
+            "size": 32,
+            "bytes": "48 89 5c 24 20 4c 89 44 24 18 48 89 54 24 10 48 89 4c 24 08 55 56 57 41 54 41 55 41 56 41 57 48"
+          }
+        }
+      ]
+    },
+    "microprocessor_input_video_node": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "140348bd0",
+          "reason": "Large logic serialization/function body references input_video and many node/property strings. Later targeted review shows this is serialization/config evidence, not a verified runtime input-source resolver.",
+          "byte_check": {
+            "va": "140348bd0",
+            "size": 32,
+            "bytes": "48 8b c4 48 89 58 18 48 89 50 10 48 89 48 08 55 56 57 41 54 41 55 41 56 41 57 48 8d 68 a1 48 81"
+          }
+        },
+        {
+          "entry": "1403b54a0",
+          "reason": "References both input_video and output_video in the same function. Later targeted review shows this is serialization/config evidence, not a verified runtime input-source resolver.",
+          "byte_check": {
+            "va": "1403b54a0",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 30 49 8b f9 49 8b d8 48 8b ea 48 8b f1"
+          }
+        },
+        {
+          "entry": "140373050",
+          "reason": "Accepted replace-DLL hook candidate: c_microprocessor_logic_node_input_video vtable index 10. Targeted decompile shows void(node, source_candidate), where the original clears or updates node+0x30 from source_candidate vfunc+0x38. c_microprocessor_component_lua_script construction places input_video at component+0x110 and embedded lua context at component+0x660, so the plugin can map a registered Lua script input node to component_lua_context via node+0x550 after chaining the original. Patch window must use 13 bytes to avoid splitting the first three prologue instructions.",
+          "byte_check": {
+            "va": "140373050",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 57 48 83 ec 20 48 8b da 48 8b f9 48 85 d2 75 0f 48 89 51 30 48 8b 5c 24 30 48 83"
+          }
+        },
+        {
+          "entry": "1403730a0",
+          "reason": "RTTI/vtable candidate: c_microprocessor_logic_node_input_video vtable index 14. Targeted decompile iterates a collection, calls candidate source vfunc+0xb8, and stores the returned pointer at node+0x28 for a selected index. Possible source-selection path; component/slot mapping remains unverified.",
+          "byte_check": {
+            "va": "1403730a0",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 48 89 74 24 18 48 89 7c 24 20 41 56 48 83 ec 20 33 ff 48 8b f2 8b df 4c 8b f1 39"
+          }
+        },
+        {
+          "entry": "14038bf30",
+          "reason": "RTTI/vtable constructor evidence for c_microprocessor_component_bridge_video_input. Targeted decompile embeds c_microprocessor_logic_node_input_video at byte offset 0x50 and c_microprocessor_logic_node_output_video at byte offset 0x2a8, proving bridge layout but not runtime source binding.",
+          "byte_check": {
+            "va": "14038bf30",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 48 89 6c 24 18 48 89 74 24 20 48 89 4c 24 08 57 41 56 41 57 48 83 ec 20 48 8b f1"
+          }
+        },
+        {
+          "entry": "14038c150",
+          "reason": "RTTI/vtable constructor evidence for c_microprocessor_component_bridge_video_output. Targeted decompile embeds c_microprocessor_logic_node_input_video at byte offset 0x50 and c_microprocessor_logic_node_output_video at byte offset 0x2a8, proving bridge layout but not runtime source binding.",
+          "byte_check": {
+            "va": "14038c150",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 48 89 6c 24 18 48 89 74 24 20 48 89 4c 24 08 57 41 56 41 57 48 83 ec 20 48 8b f1"
+          }
+        }
+      ],
+      "rtti": [
+        "c_microprocessor_logic_node_input_video",
+        "c_microprocessor_logic_node_output_video",
+        "c_vehicle_logic_slot_input_video",
+        "c_vehicle_logic_slot_output_video",
+        "c_microprocessor_component_bridge_video_input",
+        "c_microprocessor_component_bridge_video_output"
+      ]
+    },
+    "vehicle_video_logic_graph": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "1408c9960",
+          "reason": "Accepted c_vehicle_logic_slot_output_video vfunc index 6: void(output_slot, input_slot) appends the connected input-video slot to the output slot collection at +0x238..+0x248. The replacement chains the original and records the edge only when output and input RTTI vftables match output_video/input_video.",
+          "byte_check": {
+            "va": "1408c9960",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 57 48 83 ec 20 48 8d 99 38 02 00 00 48 8b fa 8b 4b 10 44 8b 43 08 41 3b c8 75 1d"
+          }
+        },
+        {
+          "entry": "1408c9860",
+          "reason": "Accepted c_vehicle_logic_slot_output_video vfunc index 7: void(output_slot, input_slot) removes the matching connected input-video slot. The replacement chains the original and removes only the same validated cached edge.",
+          "byte_check": {
+            "va": "1408c9860",
+            "size": 32,
+            "bytes": "40 56 48 83 ec 20 44 8b 89 48 02 00 00 45 33 c0 48 8b f2 45 85 c9 0f 84 d8 00 00 00 48 89 5c 24"
+          }
+        },
+        {
+          "entry": "1408c9810",
+          "reason": "Accepted c_vehicle_logic_slot_output_video vfunc index 8: void(output_slot) clears the connected input-video collection. The replacement chains the original and clears cached edges owned by the same validated output slot.",
+          "byte_check": {
+            "va": "1408c9810",
+            "size": 32,
+            "bytes": "40 53 48 83 ec 20 83 b9 40 02 00 00 00 48 8b d9 74 28 48 8b 89 38 02 00 00 e8 72 7d 0e 00 33 c0"
+          }
+        }
+      ],
+      "rtti": [
+        "c_vehicle_logic_slot_input_video",
+        "c_vehicle_logic_slot_output_video"
+      ]
+    },
+    "video_texture_source": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "140688bf0",
+          "reason": "Registers texture_video among texture/resource slots.",
+          "byte_check": {
+            "va": "140688bf0",
+            "size": 32,
+            "bytes": "48 89 5c 24 10 57 48 83 ec 30 48 8b da 48 8b f9 48 8d 44 24 20 48 89 44 24 40 33 c0 48 89 44 24"
+          }
+        }
+      ]
+    },
+    "video_texture_upload": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "14020d250",
+          "reason": "Only static glTexSubImage2D callsite in the local build; targeted decompile shows param_1+0x10 as CPU pixel buffer and param_1+0x28/0x2c/0x30/0x34 as width/height/format/type before binding the destination texture.",
+          "byte_check": {
+            "va": "14020d250",
+            "size": 32,
+            "bytes": "40 53 48 83 ec 50 48 8b 41 08 48 8b d9 b9 e1 0d 00 00 48 8b 50 08 8b 52 28 ff 15 01 54 88 00 48"
+          }
+        }
+      ]
+    },
+    "monitor_render_queue": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "140366e90",
+          "reason": "Accepted experimental replace-DLL hook candidate: monitor render queue path. Targeted decompile queues monitor render data, uses monitor+0x4b8/+0x4bc for dimensions, monitor+0x4c8/+0x4d8 for render resources, and monitor+0x1b8 as the type-6 video input slot reference. The replacement chains the original first, then probes readable GL texture handles from the monitor render resource wrappers for Lua video readback.",
+          "byte_check": {
+            "va": "140366e90",
+            "size": 32,
+            "bytes": "40 55 53 56 57 41 55 48 8d ac 24 a0 fd ff ff 48 81 ec 60 03 00 00 48 8b 05 63 c1 94 00 48 33 c4"
+          }
+        },
+        {
+          "entry": "1408ca480",
+          "reason": "Accepted diagnostic replace-DLL hook candidate: render queue allocator. Targeted decompile shows it returns a 0x180-byte queue item and initializes monitor command defaults. The replacement preserves RAX and records returned items only while monitor render or queue-submit contexts are active.",
+          "byte_check": {
+            "va": "1408ca480",
+            "size": 32,
+            "bytes": "40 53 48 83 ec 20 48 8b d9 8b 49 10 44 8b 43 08 41 3b c8 75 1d 43 8d 14 00 b8 20 00 00 00 3b d0"
+          }
+        },
+        {
+          "entry": "140673fb0",
+          "reason": "Accepted diagnostic replace-DLL hook candidate: render queue submit-copy. Targeted decompile copies an existing 0x180 queue item into render_context+0x5a0 using FUN_1408ca480. The replacement records monitor-shaped source and copied queue items.",
+          "byte_check": {
+            "va": "140673fb0",
+            "size": 32,
+            "bytes": "40 53 48 83 ec 20 48 81 c1 a0 05 00 00 48 8b da e8 bb 64 25 00 48 8b 0b 4c 8b c3 4c 8b d0 41 b9"
+          }
+        },
+        {
+          "entry": "1401afeb0",
+          "reason": "Accepted diagnostic replace-DLL hook candidate: monitor resource texture creation path. Targeted decompile shows FUN_14020cf60 executes queued monitor resource creation through FUN_1401b4390, whose returned resource object is created by vtable function FUN_1401b0290; FUN_1401b0290 calls FUN_1401afeb0(texture_slot=resource+0x48,width,height). The replacement chains the original first and records texture_slot/resource GL texture bindings so monitor+0x4c8/+0x4d8 resource wrappers can resolve through wrapper+0x8 to real GL texture handles.",
+          "byte_check": {
+            "va": "1401afeb0",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 60 41 8b f8 8b f2 48 8b d9 48 8b d1 b9"
+          }
+        }
+      ]
+    },
+    "renderer_video_pass": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "1406d1960",
+          "reason": "Accepted diagnostic replace-DLL hook candidate: renderer pass above c_material_additive_monitor. Ghidra callgraph shows FUN_1406d1960 calls FUN_140677a10; targeted decompile shows it passes scene/render command state and video frame/resource pointers through to the additive monitor shader bind. The replacement chains the original and records pass context for correlation with additive monitor GL texture bindings.",
+          "byte_check": {
+            "va": "1406d1960",
+            "size": 32,
+            "bytes": "40 55 53 56 57 41 54 41 55 41 56 41 57 48 8d ac 24 08 d6 ff ff b8 58 2b 00 00 e8 61 fa 2f 00 48"
+          }
+        }
+      ]
+    },
+    "additive_monitor_bind": {
+      "kind": "candidate_functions",
+      "value": [
+        {
+          "entry": "140677a10",
+          "reason": "Accepted experimental replace-DLL hook candidate: c_material_additive_monitor bind path. Targeted decompile plus shader parameter registration show texture_video is registered at material+0x38 and passed as param_3 to this bind function; param_2 is the draw item whose first qword is the monitor pointer written by FUN_140366e90. The replacement chains the original bind, maps draw_item->monitor->input_video_slot, and performs async PBO readback from the explicit texture_video argument instead of scanning monitor render resource wrappers.",
+          "byte_check": {
+            "va": "140677a10",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 41 56 41 57 48 83 ec 20 48 8b 71 08 48 8b f9 4d"
+          }
+        },
+        {
+          "entry": "140688ec0",
+          "reason": "Accepted replace-DLL hook candidate: real graphics/shaders/additive_monitor texture bind FUN_140688ec0 (register pair FUN_140688bf0, called only from renderer video pass FUN_1406d1960). FUN_140688e20 sets texture_video to sampler unit 0; this function binds glBindTexture(GL_TEXTURE_2D, *(u32*)(param_3+0x48)) as texture_video. Replaces the FUN_140677a10 (foam_particle) attempt whose readback was hardcoded to sampler unit 3.",
+          "byte_check": {
+            "va": "140688ec0",
+            "size": 32,
+            "bytes": "48 89 5c 24 08 48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 30 48 8b 41 30 49 8b f0 45 33 c0 49 8b"
+          }
+        }
+      ]
+    }
+  }
+}
